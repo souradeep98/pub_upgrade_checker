@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pub_upgrade_checker/home.dart';
+import 'package:pub_upgrade_checker/pages.dart';
 
 void main() {
   runApp(const PubUpgradeChecker());

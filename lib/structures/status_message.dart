@@ -1,12 +1,4 @@
-import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_utilities/flutter_utilities.dart';
-
-enum WSMDepth {
-  light,
-  medium,
-  deep,
-}
+part of structures;
 
 class StatusMessage extends Equatable {
   final String message;
@@ -31,7 +23,17 @@ bool setStatusMessage({
 }) {
   if (yourDepth.index >= message.depth.index) {
     logExceptRelease("Setting status message: ${message.message}");
-    workStatusMesageNotifier.value = message.message;
+    try {
+      workStatusMesageNotifier.value = message.message;
+    } catch (e, _) {
+      log(
+        "Error setting status message: $e",
+        error: e,
+        //stackTrace: s,
+      );
+      return false;
+    }
+
     return true;
   }
   return false;

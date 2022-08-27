@@ -1,0 +1,16 @@
+library structures;
+
+import 'dart:developer';
+
+import 'package:equatable/equatable.dart';
+import 'package:pub_semver/pub_semver.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_utilities/flutter_utilities.dart';
+import 'package:pub_upgrade_checker/utils.dart';
+
+part 'structures/dependency_type.dart';
+part 'structures/dependency.dart';
+part 'structures/status_message.dart';
+part 'structures/work_status_message_depth.dart';
+part 'structures/update_type.dart';
+part 'structures/update_information.dart';
