@@ -15,14 +15,14 @@ class UpdateInformation extends Equatable {
     required this.shouldUpdate,
   }) : isUpgradable = updateType != UpdateType.noUpdate, updateDetails = "${updateType.displayName}: ${update.versionConstraint}";
 
-  UpdateInformation setShouldUpdate(bool value) {
+  /*UpdateInformation setShouldUpdate(bool value) {
     return UpdateInformation(
       update: update,
       updateType: updateType,
       dependencyType: dependencyType,
       shouldUpdate: value,
     );
-  }
+  }*/
 
   bool isSame(Object other) =>
       ((other is Dependency) && (other.name == update.name)) ||
@@ -83,4 +83,23 @@ class UpdateInformation extends Equatable {
 
   @override
   List<Object?> get props => [update, updateType, dependencyType, shouldUpdate];
+
+  UpdateInformation copyWith({
+    Dependency? update,
+    UpdateType? updateType,
+    DependencyType? dependencyType,
+    bool? shouldUpdate,
+  }) {
+    return UpdateInformation(
+      update: update ?? this.update,
+      updateType: updateType ?? this.updateType,
+      dependencyType: dependencyType ?? this.dependencyType,
+      shouldUpdate: shouldUpdate ?? this.shouldUpdate,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'UpdateInformation(update: $update, updateType: $updateType, dependencyType: $dependencyType, shouldUpdate: $shouldUpdate, isUpgradable: $isUpgradable, updateDetails: $updateDetails)';
+  }
 }

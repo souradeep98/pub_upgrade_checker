@@ -23,6 +23,7 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
+  /*
   Future<void> _test() async {
     final File file = File("D:\\tests\\pubspec1.yaml");
 
@@ -92,6 +93,7 @@ class _HomeState extends State<Home> {
 
     //yamlEditor.toString();
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -139,9 +141,9 @@ class PickFile extends StatelessWidget {
   final void Function(File) onPick;
 
   const PickFile({
-    Key? key,
+    super.key,
     required this.onPick,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,11 +174,11 @@ class DependencyReviewer extends StatefulWidget {
   final File file;
 
   const DependencyReviewer({
-    Key? key,
+    super.key,
     required this.file,
     required this.onCloseFile,
     required this.onPickAnotherFile,
-  }) : super(key: key);
+  });
 
   @override
   State<DependencyReviewer> createState() => _DependencyReviewerState();
@@ -197,7 +199,8 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   Map<Dependency, DependencyType>? _dependencyToTypeMap;
   ValueNotifier<int?>? _shownItems;
 
-  final List<Timer> _pendingOperations = [];
+  final List<CancelableOperation<dynamic>> _pendingOperations = [];
+  //final List _pendingOperationListeners = [];
 
   @override
   void initState() {
@@ -325,10 +328,10 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   void _disposeControllers({bool initiate = false}) {
-    for (final Timer operationTimer in _pendingOperations) {
-      log("Cancelling operation, pending operations: ${_pendingOperations.length}");
-      operationTimer.cancel();
-    }
+    log("Cancelling operation, pending operations: ${_pendingOperations.length}");
+    Future.wait(_pendingOperations.map((e) => e.cancel())).then((value) {
+      _pendingOperations.clear();
+    });
     operationContinue = false;
     log("Pending Operations cancelled");
     _shownItems?.dispose();
@@ -380,7 +383,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     }
 
     final UpdateInformation newUpdateInformation =
-        updateInformation.setShouldUpdate(shouldUpdate);
+        updateInformation.copyWith(shouldUpdate: shouldUpdate);
 
     _updates.data![dependency] = newUpdateInformation;
   }
@@ -395,7 +398,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         final UpdateInformation? updateInformation = _updates.data![dependency];
         if (updateInformation != null && updateInformation.isUpgradable) {
           final UpdateInformation newUpdateInformation =
-              updateInformation.setShouldUpdate(shouldUpdate);
+              updateInformation.copyWith(shouldUpdate: shouldUpdate);
           _updates.data![dependency] = newUpdateInformation;
         }
       }
@@ -420,12 +423,23 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     }
   }
 
-  Timer _addToPendingOperations(Future<dynamic> Function() operation) {
-    final Timer _timer = Timer(Duration.zero, () async {
-      await operation();
+  CancelableOperation<dynamic> _addToPendingOperations(
+    Future<dynamic> Function() operation,
+  ) {
+    final CancelableOperation<dynamic> cancellableOperation =
+        CancelableOperation<dynamic>.fromFuture(operation());
+    _pendingOperations.add(cancellableOperation);
+
+    cancellableOperation.valueOrCancellation("Cancelled").then((value) {
+      if (value == "Cancelled") {
+        log("Operation is cancelled, removing from pending");
+      } else {
+        log("Operation is completed, removing from pending");
+        _pendingOperations.remove(cancellableOperation);
+      }
     });
-    _pendingOperations.add(_timer);
-    return _timer;
+
+    return cancellableOperation;
   }
 
   Future<bool> _update() async {
@@ -449,23 +463,27 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       return;
     }
 
-    for (final DependencyType dependencyType in _dependencies.data!.keys) {
+    for (final DependencyType currentDependencyType
+        in _dependencies.data!.keys) {
       final int lengthOfDependenciesOfCurrentType =
-          _dependencies.data![dependencyType]!.length;
+          _dependencies.data![currentDependencyType]!.length;
+
       for (int i = 0; i < lengthOfDependenciesOfCurrentType; ++i) {
         final Dependency oldDependency =
-            _dependencies.data![dependencyType]![i];
+            _dependencies.data![currentDependencyType]![i];
 
         final UpdateInformation? updateInformation =
             _updates.data![oldDependency];
 
-        if (updateInformation == null) {
+        if (updateInformation == null || !updateInformation.shouldUpdate) {
+          log("DependencyChecker: $oldDependency was not updated");
           continue;
         }
 
         final Dependency update = updateInformation.update;
 
-        _dependencies.data![dependencyType]![i] = update;
+        _dependencies.data![currentDependencyType]![i] = update;
+
         _dependencyToTypeMap!.remove(oldDependency);
         _dependencyToTypeMap![update] = updateInformation.dependencyType;
       }
@@ -476,8 +494,15 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     for (final Dependency oldDependency in oldDependencies) {
       final UpdateInformation updateInformation =
           _updates.data![oldDependency]!;
+      if (!updateInformation.shouldUpdate) {
+        log("UpdateChecker: $oldDependency was not updated");
+        continue;
+      }
       _updates.data!.remove(oldDependency);
-      _updates.data![updateInformation.update] = updateInformation;
+      _updates.data![updateInformation.update] = updateInformation.copyWith(
+        updateType: UpdateType.noUpdate,
+        shouldUpdate: false,
+      );
     }
   }
 

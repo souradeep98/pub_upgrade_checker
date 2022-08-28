@@ -129,7 +129,8 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
     ),
   );
 
-  workStatusMessage?.value = "";
+  emptyStatusMessage(workStatusMessage);
+
   return {
     DependencyType.dependency: dependencies,
     DependencyType.devDependency: devDependencies,
@@ -269,7 +270,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
     ),
   );
 
-  workStatusMessage?.value = null;
+  hideStatusMessage(workStatusMessage);
 
   return results;
 }
@@ -393,5 +394,5 @@ Future<void> updateDependencies({
     ),
   );
 
-  workStatusMessage?.value = null;
+  hideStatusMessage(workStatusMessage);
 }
