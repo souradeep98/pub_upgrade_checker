@@ -26,7 +26,7 @@ bool setStatusMessage({
     try {
       workStatusMesageNotifier.value = message.message;
     } catch (e) {
-      log(
+      logExceptRelease(
         "Error setting status message: $e",
         error: e,
         //stackTrace: s,
@@ -43,7 +43,7 @@ bool emptyStatusMessage(ValueNotifier<String?>? workStatusMesageNotifier) {
   try {
     workStatusMesageNotifier?.value = "";
   } catch (e) {
-    log(
+    logExceptRelease(
       "Error setting status message: $e",
       error: e,
       //stackTrace: s,
@@ -57,7 +57,7 @@ bool hideStatusMessage(ValueNotifier<String?>? workStatusMesageNotifier) {
   try {
     workStatusMesageNotifier?.value = null;
   } catch (e) {
-    log(
+    logExceptRelease(
       "Error setting status message: $e",
       error: e,
       //stackTrace: s,

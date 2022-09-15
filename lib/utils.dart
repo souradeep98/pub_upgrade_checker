@@ -3,12 +3,13 @@ library utils;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_utilities/flutter_utilities.dart';
+import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:pub_upgrade_checker/globals.dart';
 import 'package:pub_upgrade_checker/structures.dart';
 import 'package:yaml/yaml.dart' as yaml;
 import 'package:html/dom.dart' as html;
+import 'package:http/http.dart' as http;
 import 'package:yaml_edit/yaml_edit.dart';
 
 extension VersionConstraintExtension on VersionConstraint {
@@ -24,7 +25,7 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
   ValueNotifier<String?>? workStatusMessage,
   WSMDepth wsmDepth = WSMDepth.light,
 }) async {
-  void _setStatus(StatusMessage message) {
+  void setStatus(StatusMessage message) {
     if (workStatusMessage == null) {
       return;
     }
@@ -37,14 +38,14 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Loading dependencies...",
       depth: WSMDepth.light,
     ),
   );
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Reading file...",
       depth: WSMDepth.deep,
@@ -55,7 +56,7 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Loading yaml content...",
       depth: WSMDepth.deep,
@@ -66,7 +67,7 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Reading dependencies...",
       depth: WSMDepth.deep,
@@ -83,7 +84,7 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
           .filterOutWhere((key, value) {
     final bool exclude = (key == "flutter") || (value is! String);
     if (!exclude) {
-      _setStatus(
+      setStatus(
         StatusMessage(
           message: "Loading dependency: $key",
           depth: WSMDepth.deep,
@@ -102,7 +103,7 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
     (key, value) {
       final bool exclude = (key == "flutter_test") || (value is! String);
       if (!exclude) {
-        _setStatus(
+        setStatus(
           StatusMessage(
             message: "Loading dev dependency: $key",
             depth: WSMDepth.deep,
@@ -122,14 +123,14 @@ Future<Map<DependencyType, List<Dependency>>> getDependencies(
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Dependencies loaded!",
       depth: WSMDepth.light,
     ),
   );
 
-  emptyStatusMessage(workStatusMessage);
+  //emptyStatusMessage(workStatusMessage);
 
   return {
     DependencyType.dependency: dependencies,
@@ -144,7 +145,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
   int? initialCount,
   int? totalCount,
 }) async {
-  void _setStatus(StatusMessage message) {
+  void setStatus(StatusMessage message) {
     if (workStatusMessage == null) {
       return;
     }
@@ -161,7 +162,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
 
   final Map<Dependency, Dependency> results = {};
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Checking for updates...",
       depth: WSMDepth.light,
@@ -176,7 +177,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
     final Dependency x = dependencies[i];
     final int currentCount =
         (initialCount != null) ? (initialCount + i + 1) : (i + 1);
-    _setStatus(
+    setStatus(
       StatusMessage(
         message:
             "Checking update for: ${x.name} ($currentCount/${totalCount ?? length})",
@@ -186,7 +187,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
     logExceptRelease("");
     logExceptRelease("Local: ${x.name}: ${x.versionConstraint}");
     final Uri uri = Uri.parse(pubBaseUrl + x.name);
-    final Response response = await HTTP.get(uri);
+    final http.Response response = await http.get(uri);
 
     final html.Document htmlDoc = html.Document.html(response.body);
 
@@ -215,7 +216,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
     logExceptRelease(updateFound ? "Update available!" : "Latest!");
 
     if (updateFound) {
-      _setStatus(
+      setStatus(
         StatusMessage(
           message: "Update found for ${x.name}",
           depth: WSMDepth.deep,
@@ -263,7 +264,7 @@ Future<Map<Dependency, Dependency>> getUpdates(
   }
   dependencies.forEach(_checker);*/
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Finished Checking for Updates!",
       depth: WSMDepth.deep,
@@ -281,7 +282,7 @@ Future<void> updateDependencies({
   ValueNotifier<String?>? workStatusMessage,
   WSMDepth wsmDepth = WSMDepth.light,
 }) async {
-  void _setStatus(StatusMessage message) {
+  void setStatus(StatusMessage message) {
     if (workStatusMessage == null) {
       return;
     }
@@ -292,14 +293,14 @@ Future<void> updateDependencies({
     );
   }
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Loading dependencies...",
       depth: WSMDepth.light,
     ),
   );
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Reading file...",
       depth: WSMDepth.deep,
@@ -312,7 +313,7 @@ Future<void> updateDependencies({
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Loading yaml content...",
       depth: WSMDepth.deep,
@@ -323,7 +324,7 @@ Future<void> updateDependencies({
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Filtering dependencies...",
       depth: WSMDepth.deep,
@@ -335,7 +336,7 @@ Future<void> updateDependencies({
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Updating dependencies...",
       depth: WSMDepth.deep,
@@ -354,7 +355,7 @@ Future<void> updateDependencies({
     final String rootNode = updateInformation.dependencyType.pubspecName;
     final String dependencyName = updateInformation.update.name;
     final String dependencyTypeName = updateInformation.dependencyType.typeName;
-    _setStatus(
+    setStatus(
       StatusMessage(
         message:
             "Updating $dependencyTypeName: $dependencyName (${i + 1}/$updateInformationLength)",
@@ -371,14 +372,14 @@ Future<void> updateDependencies({
 
   checkOperation();
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Dependencies updated!",
       depth: WSMDepth.deep,
     ),
   );
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Writing to file...",
       depth: WSMDepth.light,
@@ -387,7 +388,7 @@ Future<void> updateDependencies({
 
   await file.writeAsString(yamlEditor.toString());
 
-  _setStatus(
+  setStatus(
     const StatusMessage(
       message: "Writing to file complete!",
       depth: WSMDepth.medium,

@@ -127,14 +127,18 @@ class _HomeState extends State<Home> {
 }
 
 Future<void> _pickFile(void Function(File) onPick) async {
-  final List<File> x = await pickFiles(
-    allowMultiple: false,
+  final FilePickerResult? result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
     allowedExtensions: ["yaml"],
   );
-  if (x.isEmpty) {
+  /*final List<File> x = await pickFiles(
+    allowMultiple: false,
+    allowedExtensions: ["yaml"],
+  );*/
+  if (result == null) {
     return;
   }
-  onPick(x.first);
+  onPick(File(result.files.single.path!));
 }
 
 class PickFile extends StatelessWidget {
@@ -191,16 +195,13 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   late SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>
       _dependencies;
   late SingleGenerateObservable<RxMap<Dependency, UpdateInformation>> _updates;
-  //late ValueNotifier<Map<String, bool>> _updateList;
   ValueNotifier<String?>? _workStatusMessage;
   ValueNotifier<bool>? _showDifferencesOnly;
-  //late ValueNotifier<bool> _updateMajorUpdates;
   TextEditingController? _textEditingController;
   Map<Dependency, DependencyType>? _dependencyToTypeMap;
   ValueNotifier<int?>? _shownItems;
 
   final List<CancelableOperation<dynamic>> _pendingOperations = [];
-  //final List _pendingOperationListeners = [];
 
   @override
   void initState() {
@@ -225,7 +226,10 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   void _initiate() {
     _textEditingController = TextEditingController();
     _showDifferencesOnly = ValueNotifier<bool>(false);
-    _workStatusMessage = ValueNotifier<String?>(null);
+    _workStatusMessage = ValueNotifier<String?>(null)
+      ..addListener(() {
+        logExceptRelease("Status Message: ${_workStatusMessage?.value}");
+      });
     _shownItems = ValueNotifier<int?>(null);
     _dependencies = Get.put<
         SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>>(
@@ -328,12 +332,14 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   void _disposeControllers({bool initiate = false}) {
-    log("Cancelling operation, pending operations: ${_pendingOperations.length}");
+    logExceptRelease(
+      "Cancelling operation, pending operations: ${_pendingOperations.length}",
+    );
     Future.wait(_pendingOperations.map((e) => e.cancel())).then((value) {
       _pendingOperations.clear();
     });
     operationContinue = false;
-    log("Pending Operations cancelled");
+    logExceptRelease("Pending Operations cancelled");
     _shownItems?.dispose();
     _shownItems = null;
     _textEditingController?.dispose();
@@ -343,7 +349,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     _showDifferencesOnly?.dispose();
     _showDifferencesOnly = null;
     _dependencyToTypeMap = null;
-    log("Controllers Disposed");
+    logExceptRelease("Controllers Disposed");
     Future.wait([
       Get.delete<
           SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>>(
@@ -354,7 +360,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         tag: _updatesTag,
       ),
     ]).then((value) {
-      log("GetX controllers Disposed");
+      logExceptRelease("GetX controllers Disposed");
       if (initiate) {
         _initiate();
       }
@@ -432,9 +438,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
 
     cancellableOperation.valueOrCancellation("Cancelled").then((value) {
       if (value == "Cancelled") {
-        log("Operation is cancelled, removing from pending");
+        logExceptRelease("Operation is cancelled, removing from pending");
       } else {
-        log("Operation is completed, removing from pending");
+        logExceptRelease("Operation is completed, removing from pending");
         _pendingOperations.remove(cancellableOperation);
       }
     });
@@ -476,7 +482,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
             _updates.data![oldDependency];
 
         if (updateInformation == null || !updateInformation.shouldUpdate) {
-          log("DependencyChecker: $oldDependency was not updated");
+          logExceptRelease("DependencyChecker: $oldDependency was not updated");
           continue;
         }
 
@@ -495,7 +501,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       final UpdateInformation updateInformation =
           _updates.data![oldDependency]!;
       if (!updateInformation.shouldUpdate) {
-        log("UpdateChecker: $oldDependency was not updated");
+        logExceptRelease("UpdateChecker: $oldDependency was not updated");
         continue;
       }
       _updates.data!.remove(oldDependency);
@@ -538,18 +544,36 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         ValueListenableBuilder<String?>(
           valueListenable: _workStatusMessage!,
           builder: (context, statusMessage, _) {
-            return AnimatedSwitcher(
-              switchInCurve: Curves.easeIn,
-              switchOutCurve: Curves.easeOut,
-              child: statusMessage != null ? Text(statusMessage) : empty,
-              duration: const Duration(milliseconds: 500),
-              transitionBuilder: (child, animation) => SizeTransition(
-                sizeFactor: animation,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    child,
-                  ],
+            return AnimatedShowHide(
+              isShown: statusMessage != null,
+              showCurve: Curves.easeIn,
+              hideCurve: Curves.easeOut,
+              child: Text(statusMessage ?? ''),
+              //showDuration: const Duration(milliseconds: 750),
+              transitionBuilder: (context, animation, child) => FadeTransition(
+                opacity: animation,
+                child: SizeTransition(
+                  axisAlignment: -1,
+                  sizeFactor: animation,
+                  child: Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          child,
+                        ],
+                      ),
+                      IconButton(
+                        tooltip: "Stop",
+                        onPressed: () {
+                          operationContinue = false;
+                          hideStatusMessage(_workStatusMessage);
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -914,11 +938,15 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update button
         Obx(
           () {
-            final FeedbackCallback? onPressed = _updates.data == null ||
-                    (!_updates.data!.entries
-                        .any((element) => element.value.shouldUpdate))
+            final FeedbackCallback? onPressed = ((_updates.data == null) ||
+                    (!_updates.data!.entries.any((element) {
+                      logExceptRelease("${element.value}");
+                      return element.value.shouldUpdate;
+                    })))
                 ? null
                 : _update;
+
+            //logExceptRelease("Update onPressed: $onPressed");
             return Padding(
               padding: const EdgeInsets.all(10),
               child: LoadingElevatedButton(

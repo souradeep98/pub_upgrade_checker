@@ -1,11 +1,9 @@
 library structures;
 
-import 'dart:developer';
-
 import 'package:equatable/equatable.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_utilities/flutter_utilities.dart';
+import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:pub_upgrade_checker/utils.dart';
 
 part 'structures/dependency_type.dart';

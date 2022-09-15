@@ -1,7 +1,19 @@
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:pub_upgrade_checker/pages.dart';
 
 void main() {
+  if (isDesktop) {
+    WidgetsFlutterBinding.ensureInitialized();
+    doWhenWindowReady(() {
+      appWindow.minSize = const Size(
+        640,
+        400,
+      );
+      appWindow.title = "Pub Upgrade Checker";
+    });
+  }
   runApp(const PubUpgradeChecker());
 }
 
