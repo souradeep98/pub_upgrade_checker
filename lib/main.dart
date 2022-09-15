@@ -1,7 +1,7 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_essentials/flutter_essentials.dart';
-import 'package:pub_upgrade_checker/pages.dart';
+import 'package:pub_upgrade_checker/src/pages.dart';
 
 void main() {
   if (isDesktop) {
@@ -22,10 +22,11 @@ class PubUpgradeChecker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Pub Upgrade Checker',
-      home: Home(),
+      home: const Home(),
+      theme: ThemeData.light(),
     );
   }
 }

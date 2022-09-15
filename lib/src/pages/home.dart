@@ -526,10 +526,12 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           child: ListTile(
             title: const Text("Opened File:"),
             subtitle: Text(widget.file.path),
-            trailing: IconButton(
-              tooltip: "Close File",
-              onPressed: widget.onCloseFile,
-              icon: const Icon(Icons.close),
+            trailing: Tooltip(
+              message: "Close File",
+              child: IconButton(
+                onPressed: widget.onCloseFile,
+                icon: const Icon(Icons.close),
+              ),
             ),
             onTap: () {
               _pickFile(widget.onPickAnotherFile);
