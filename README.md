@@ -1,4 +1,4 @@
-# pub_upgrade_checker
+# Pub Upgrade Checker
 
 A Flutter app to check and upgrade your pub dependencies.
 
