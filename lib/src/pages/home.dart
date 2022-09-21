@@ -264,6 +264,17 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
             widget.file,
             workStatusMessage: _workStatusMessage,
           );
+          // Counts
+          _countsCache.total = dependencies.length;
+
+          for (final UpdateInformation item in dependencies) {
+            if (_countsCache.individualCounts[item.dependencyType] == null) {
+              _countsCache.individualCounts[item.dependencyType] =
+                  _IndividualCountCache.zero();
+            }
+            _countsCache.individualCounts[item.dependencyType]!.total =
+                _countsCache.individualCounts[item.dependencyType]!.total! + 1;
+          }
 
           return RxList<UpdateInformation>(dependencies);
         },
@@ -591,18 +602,12 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update all
         Obx(
           () {
-            final List<UpdateInformation>? allDependencies =
-                _updates.data?.toList();
-            final int total = _countsCache.total ??
-                (_countsCache.total = allDependencies?.length ?? 0);
+            logExceptRelease("Building update all");
+            final bool gotItems = _updates.data != null;
 
-            final int toUpdate = _countsCache.toUpdate ??
-                (_countsCache.toUpdate = allDependencies
-                        ?.where(
-                          (element) => element.isUpdating,
-                        )
-                        .length ??
-                    0);
+            final int total = _countsCache.total ?? 0;
+
+            final int toUpdate = _countsCache.toUpdate ?? 0;
 
             final bool ifUpdateAll = (total != 0) && (total == toUpdate);
 
@@ -611,7 +616,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
               title: Row(
                 children: [
                   const Expanded(child: Text("Update All")),
-                  if (allDependencies != null)
+                  if (gotItems)
                     if (total != 0)
                       Text("($toUpdate/$total)")
                     else
@@ -619,7 +624,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                 ],
               ),
               value: ifUpdateAll,
-              onChanged: (allDependencies != null) && (total != 0)
+              onChanged: gotItems && (total != 0)
                   ? (x) {
                       //TODO: implement prerelease
                       final ReleaseChannel updateTo =
@@ -649,8 +654,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                       return empty;
                     }
 
-                    final int total = _countsCache.total ??
-                        (_countsCache.total = _updates.data!.length);
+                    final int total = _countsCache.total!;
 
                     return Text(
                       "Total: $total",
@@ -724,6 +728,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                           groupSeparatorBuilder: (dependencyType) => ColoredBox(
                             child: Obx(
                               () {
+                                logExceptRelease("Building separator");
                                 // These are for subtitle elements
                                 final _IndividualCountCache counts =
                                     _countsCache
@@ -734,46 +739,6 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                     counts.majorUpdates!;
                                 final int higherStable = counts.higher!;
                                 final int unknownStable = counts.unknown!;
-
-                                /*stableUpdates = _updates.data
-                                        ?.where(
-                                          (element) =>
-                                              (element.stableUpdateType ==
-                                                  UpdateType.update) &&
-                                              (element.dependencyType ==
-                                                  dependencyType),
-                                        )
-                                        .length ??
-                                    0;
-
-                                majorStableUpdates = _updates.data
-                                        ?.where(
-                                          (element) =>
-                                              (element.stableUpdateType ==
-                                                  UpdateType.majorUpdate) &&
-                                              (element.dependencyType ==
-                                                  dependencyType),
-                                        )
-                                        .length ??
-                                    0;
-
-                                higherStable = _updates.data
-                                        ?.where(
-                                          (element) =>
-                                              element.stableUpdateType ==
-                                              UpdateType.higher,
-                                        )
-                                        .length ??
-                                    0;
-
-                                unknownStable = _updates.data
-                                        ?.where(
-                                          (element) =>
-                                              element.stableUpdateType ==
-                                              UpdateType.higher,
-                                        )
-                                        .length ??
-                                    0;*/
 
                                 final List<String> subtitleElements = [
                                   if (stableUpdates > 0)
@@ -805,6 +770,8 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                     "(${titleCountElements.join(" / ")})",
                                 ];
 
+                                logExceptRelease("Separator build complete");
+
                                 return ListTile(
                                   title: Text(
                                     titleElements.join(" "),
@@ -827,6 +794,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                               (context, updateInformation, index) {
                             return Obx(
                               () {
+                                logExceptRelease("Building item: $index");
                                 _updates.data; // Very important task
                                 return Tooltip(
                                   waitDuration: const Duration(seconds: 1),
@@ -838,7 +806,10 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                       updateInformation,
                                     ),
                                     dense: true,
-                                    title: Text(updateInformation.toString()),
+                                    //title: Text(updateInformation.toString()),
+                                    title: Text(
+                                      updateInformation.current.toString(),
+                                    ),
                                     subtitle: Text(
                                       updateInformation.updateDetails,
                                       style: _getTextStyle(
@@ -877,13 +848,8 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update button
         Obx(
           () {
-            final FeedbackCallback? onPressed = ((_updates.data == null) ||
-                    (!_updates.data!.any((element) {
-                      //logExceptRelease("${element.value}");
-                      return element.isUpdating;
-                    })))
-                ? null
-                : _update;
+            final FeedbackCallback? onPressed =
+                (_countsCache.toUpdate ?? 0) <= 0 ? null : _update;
 
             //logExceptRelease("Update onPressed: $onPressed");
             return Padding(

@@ -97,65 +97,6 @@ class UpdateInformation extends Equatable {
       ((other is Dependency) && (other.name == current.name)) ||
       ((other is UpdateInformation) && isSame(other.current));
 
-  /*bool operator >(Object other) {
-    assert(isSame(other));
-    return ((other is UpdateInformation) &&
-            stableUpdate > other.stableUpdate) ||
-        ((other is Dependency) &&
-            (stableUpdate.versionConstraint.version >
-                other.versionConstraint.version)) ||
-        ((other is VersionConstraint) &&
-            (stableUpdate.versionConstraint.version > other.version)) ||
-        ((other is Version) && stableUpdate.versionConstraint.version > other);
-  }
-
-  bool operator <(Object other) {
-    assert(isSame(other));
-    return ((other is UpdateInformation) &&
-            stableUpdate < other.stableUpdate) ||
-        ((other is Dependency) &&
-            (stableUpdate.versionConstraint.version <
-                other.versionConstraint.version)) ||
-        ((other is VersionConstraint) &&
-            (stableUpdate.versionConstraint.version < other.version)) ||
-        ((other is Version) && stableUpdate.versionConstraint.version < other);
-  }
-
-  bool operator >=(Object other) {
-    assert(isSame(other));
-    return ((other is UpdateInformation) &&
-            stableUpdate >= other.stableUpdate) ||
-        ((other is Dependency) &&
-            (stableUpdate.versionConstraint.version >=
-                other.versionConstraint.version)) ||
-        ((other is VersionConstraint) &&
-            (stableUpdate.versionConstraint.version >= other.version)) ||
-        ((other is Version) && stableUpdate.versionConstraint.version >= other);
-  }
-
-  bool operator <=(Object other) {
-    assert(isSame(other));
-    return ((other is UpdateInformation) &&
-            stableUpdate <= other.stableUpdate) ||
-        ((other is Dependency) &&
-            (stableUpdate.versionConstraint.version <=
-                other.versionConstraint.version)) ||
-        ((other is VersionConstraint) &&
-            (stableUpdate.versionConstraint.version <= other.version)) ||
-        ((other is Version) && stableUpdate.versionConstraint.version <= other);
-  }*/
-
-  /*bool allows(Object other) =>
-      ((other is UpdateInformation) &&
-          isSame(other) &&
-          stableUpdate.allows(other)) ||
-      ((other is Dependency) &&
-          stableUpdate.isSame(other) &&
-          stableUpdate.versionConstraint.allowsAny(other.versionConstraint)) ||
-      ((other is VersionConstraint) &&
-          stableUpdate.versionConstraint.allowsAny(other)) ||
-      ((other is Version) && stableUpdate.versionConstraint.allows(other));*/
-
   @override
   List<Object?> get props =>
       [stableUpdate, prereleaseUpdate, dependencyType, updateTo];

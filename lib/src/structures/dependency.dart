@@ -64,7 +64,7 @@ class Dependency extends Equatable {
 
   bool operator >(Object other) {
     assert(isSame(other));
-    return ((other is UpdateInformation) && this > other.current) ||
+    return 
         ((other is Dependency) &&
             (versionConstraint.version > other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
