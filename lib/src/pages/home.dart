@@ -848,6 +848,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update button
         Obx(
           () {
+            _updates.data;
             final FeedbackCallback? onPressed =
                 (_countsCache.toUpdate ?? 0) <= 0 ? null : _update;
 
