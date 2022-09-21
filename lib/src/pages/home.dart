@@ -98,6 +98,7 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const PUCAppBar(),
       body: SafeArea(
         child: ValueListenableBuilder<File?>(
           valueListenable: _selectedFile,
@@ -189,17 +190,18 @@ class DependencyReviewer extends StatefulWidget {
 }
 
 class _DependencyReviewerState extends State<DependencyReviewer> {
-  static const String _dependenciesTag = "dependencies";
+  //static const String _dependenciesTag = "dependencies";
   static const String _updatesTag = "updates";
 
-  late SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>
-      _dependencies;
-  late SingleGenerateObservable<RxMap<Dependency, UpdateInformation>> _updates;
+  /*late SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>
+      _dependencies;*/
+  late SingleGenerateObservable<RxList<UpdateInformation>> _updates;
   ValueNotifier<String?>? _workStatusMessage;
   ValueNotifier<bool>? _showDifferencesOnly;
   TextEditingController? _textEditingController;
-  Map<Dependency, DependencyType>? _dependencyToTypeMap;
+  //Map<Dependency, DependencyType>? _dependencyToTypeMap;
   ValueNotifier<int?>? _shownItems;
+  final _CountsCache _countsCache = _CountsCache();
 
   final List<CancelableOperation<dynamic>> _pendingOperations = [];
 
@@ -231,7 +233,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         logExceptRelease("Status Message: ${_workStatusMessage?.value}");
       });
     _shownItems = ValueNotifier<int?>(null);
-    _dependencies = Get.put<
+    /*_dependencies = Get.put<
         SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>>(
       SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>(
         dataGenerator: (data) async {
@@ -253,76 +255,17 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         generateOnInit: false,
       ),
       tag: _dependenciesTag,
-    );
+    );*/
 
-    _updates =
-        Get.put<SingleGenerateObservable<RxMap<Dependency, UpdateInformation>>>(
-      SingleGenerateObservable<RxMap<Dependency, UpdateInformation>>(
+    _updates = Get.put<SingleGenerateObservable<RxList<UpdateInformation>>>(
+      SingleGenerateObservable<RxList<UpdateInformation>>(
         dataGenerator: (data) async {
-          final Map<Dependency, UpdateInformation> result = {};
-          final int totalCount = _dependencies.data?.values
-                  .reduce(
-                    (value, element) =>
-                        RxList(value.toList() + element.toList()),
-                  )
-                  .length ??
-              0;
-
-          final Map<Dependency, Dependency> dependencyUpdates =
-              await getUpdates(
-            (_dependencies.data?[DependencyType.dependency]) ?? [],
+          final List<UpdateInformation> dependencies = await getDependencies(
+            widget.file,
             workStatusMessage: _workStatusMessage,
-            wsmDepth: WSMDepth.medium,
-            totalCount: totalCount,
           );
 
-          final Map<Dependency, Dependency> devDependencyUpdates =
-              await getUpdates(
-            (_dependencies.data?[DependencyType.devDependency]) ?? [],
-            workStatusMessage: _workStatusMessage,
-            wsmDepth: WSMDepth.medium,
-            initialCount:
-                _dependencies.data?[DependencyType.dependency]?.length ?? 0,
-            totalCount: totalCount,
-          );
-
-          result.addAll(
-            dependencyUpdates.map<Dependency, UpdateInformation>(
-              (key, value) {
-                final UpdateType updateType =
-                    UpdateType.getUpdateType(key, value);
-
-                return MapEntry<Dependency, UpdateInformation>(
-                  key,
-                  UpdateInformation(
-                    update: value,
-                    updateType: updateType,
-                    dependencyType: DependencyType.dependency,
-                    shouldUpdate: updateType.shouldUpdate,
-                  ),
-                );
-              },
-            ),
-          );
-
-          result.addAll(
-            devDependencyUpdates.map<Dependency, UpdateInformation>(
-              (key, value) {
-                final UpdateType updateType =
-                    UpdateType.getUpdateType(key, value);
-                return MapEntry<Dependency, UpdateInformation>(
-                  key,
-                  UpdateInformation(
-                    update: value,
-                    updateType: updateType,
-                    dependencyType: DependencyType.devDependency,
-                    shouldUpdate: updateType.shouldUpdate,
-                  ),
-                );
-              },
-            ),
-          );
-          return RxMap(result);
+          return RxList<UpdateInformation>(dependencies);
         },
         generateOnInit: false,
       ),
@@ -332,6 +275,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   void _disposeControllers({bool initiate = false}) {
+    _countsCache.clear();
     logExceptRelease(
       "Cancelling operation, pending operations: ${_pendingOperations.length}",
     );
@@ -348,13 +292,13 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     _workStatusMessage = null;
     _showDifferencesOnly?.dispose();
     _showDifferencesOnly = null;
-    _dependencyToTypeMap = null;
+    //_dependencyToTypeMap = null;
     logExceptRelease("Controllers Disposed");
     Future.wait([
-      Get.delete<
+      /*Get.delete<
           SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>>(
         tag: _dependenciesTag,
-      ),
+      ),*/
       Get.delete<
           SingleGenerateObservable<RxMap<Dependency, UpdateInformation>>>(
         tag: _updatesTag,
@@ -370,67 +314,114 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   void _generate() {
     _addToPendingOperations(() async {
       operationContinue = true;
-      await _dependencies.generate();
+      //await _dependencies.generate();
       await _updates.generate();
+      await _getUpdates();
       operationContinue = false;
     });
   }
 
-  void _setShouldUpdate(Dependency dependency, bool shouldUpdate) {
-    final Map<Dependency, UpdateInformation>? updatesSnapshot = _updates.data;
-    if (updatesSnapshot == null) {
-      return;
+  Future<bool> _getUpdates() async {
+    final List<UpdateInformation>? dependencies = _updates.data;
+    if (dependencies == null) {
+      return false;
     }
+    final List<UpdateInformation> result = await getUpdates(dependencies);
+    _updates.data?.replaceRange(0, dependencies.length, result);
 
-    final UpdateInformation? updateInformation = updatesSnapshot[dependency];
+    // Generate counts cache
+    logExceptRelease("Generating Counts Cache");
+    _countsCache.total = result.length;
+    _countsCache.toUpdate = 0;
+    for (final UpdateInformation element in result) {
+      if (_countsCache.individualCounts[element.dependencyType] == null) {
+        _countsCache.individualCounts[element.dependencyType] =
+            _IndividualCountCache.zero();
+      }
 
-    if (updateInformation == null) {
-      return;
-    }
+      {
+        final int currentCount =
+            _countsCache.individualCounts[element.dependencyType]!.total!;
+        _countsCache.individualCounts[element.dependencyType]!.total =
+            currentCount + 1;
+      }
 
-    final UpdateInformation newUpdateInformation =
-        updateInformation.copyWith(shouldUpdate: shouldUpdate);
+      final UpdateType updateType = element.updateType!;
 
-    _updates.data![dependency] = newUpdateInformation;
-  }
+      if (updateType != UpdateType.noUpdate) {
+        final int currentCount =
+            _countsCache.individualCounts[element.dependencyType]!.unmatched!;
+        _countsCache.individualCounts[element.dependencyType]!.unmatched =
+            currentCount + 1;
+      }
 
-  void _setShouldUpdateAll(bool shouldUpdate) {
-    if ((_dependencies.data == null) || (_updates.data == null)) {
-      return;
-    }
+      switch (updateType) {
+        case UpdateType.noUpdate:
+          break;
+        case UpdateType.update:
+          final int currentCount =
+              _countsCache.individualCounts[element.dependencyType]!.updates!;
+          _countsCache.individualCounts[element.dependencyType]!.updates =
+              currentCount + 1;
+          _countsCache.toUpdate = _countsCache.toUpdate! + 1;
+          break;
+        case UpdateType.majorUpdate:
+          final int currentCount = _countsCache
+              .individualCounts[element.dependencyType]!.majorUpdates!;
+          _countsCache.individualCounts[element.dependencyType]!.majorUpdates =
+              currentCount + 1;
+          break;
+        case UpdateType.unknown:
+          final int currentCount =
+              _countsCache.individualCounts[element.dependencyType]!.unknown!;
+          _countsCache.individualCounts[element.dependencyType]!.unknown =
+              currentCount + 1;
+          break;
 
-    for (final List<Dependency> dependencies in _dependencies.data!.values) {
-      for (final Dependency dependency in dependencies) {
-        final UpdateInformation? updateInformation = _updates.data![dependency];
-        if (updateInformation != null && updateInformation.isUpgradable) {
-          final UpdateInformation newUpdateInformation =
-              updateInformation.copyWith(shouldUpdate: shouldUpdate);
-          _updates.data![dependency] = newUpdateInformation;
-        }
+        case UpdateType.higher:
+          final int currentCount =
+              _countsCache.individualCounts[element.dependencyType]!.higher!;
+          _countsCache.individualCounts[element.dependencyType]!.higher =
+              currentCount + 1;
+          break;
       }
     }
+
+    return true;
   }
 
-  TextStyle? _getTextStyle(UpdateType? updateType) {
-    if (updateType == null) {
-      return null;
+  Future<bool> _update() async {
+    final List<UpdateInformation>? dependencies = _updates.data?.toList();
+    if (dependencies == null) {
+      return false;
     }
-    switch (updateType) {
-      case UpdateType.update:
-        return const TextStyle(fontWeight: FontWeight.w700);
-      case UpdateType.majorUpdate:
-        return const TextStyle(fontWeight: FontWeight.w700, color: Colors.red);
-      case UpdateType.unknown:
-        return const TextStyle(color: Colors.red);
-      case UpdateType.noUpdate:
-        return null;
-      case UpdateType.higher:
-        return const TextStyle(fontWeight: FontWeight.w600);
+    operationContinue = true;
+    await updateDependencies(
+      file: widget.file,
+      updateInformations: dependencies,
+      workStatusMessage: _workStatusMessage,
+      wsmDepth: WSMDepth.medium,
+    );
+    operationContinue = false;
+    await _replaceCurrentDependenciesWithUpdates();
+    return true;
+  }
+
+  Future<void> _replaceCurrentDependenciesWithUpdates() async {
+    final List<UpdateInformation>? dependencies = _updates.data?.toList();
+    if (dependencies == null) {
+      return;
     }
+
+    final List<UpdateInformation> updatedDependencies =
+        dependencies.map<UpdateInformation>((e) => e.updatedVersion()).toList();
+
+    _updates.data!.replaceRange(0, 1, updatedDependencies);
+    _countsCache.clear();
   }
 
   CancelableOperation<dynamic> _addToPendingOperations(
-    Future<dynamic> Function() operation,
+    Future Function() operation,
   ) {
     final CancelableOperation<dynamic> cancellableOperation =
         CancelableOperation<dynamic>.fromFuture(operation());
@@ -448,67 +439,60 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     return cancellableOperation;
   }
 
-  Future<bool> _update() async {
+  void _setUpdateTo(
+    UpdateInformation updateInformation,
+    ReleaseChannel updateTo,
+  ) {
     if (_updates.data == null) {
-      return false;
-    }
-    operationContinue = true;
-    await updateDependencies(
-      file: widget.file,
-      updateInformations: _updates.data!.values.toList(),
-      workStatusMessage: _workStatusMessage,
-      wsmDepth: WSMDepth.medium,
-    );
-    operationContinue = false;
-    await _replaceCurrentDependenciesWithLatest();
-    return true;
-  }
-
-  Future<void> _replaceCurrentDependenciesWithLatest() async {
-    if ((_updates.data == null) || (_dependencies.data == null)) {
       return;
     }
 
-    for (final DependencyType currentDependencyType
-        in _dependencies.data!.keys) {
-      final int lengthOfDependenciesOfCurrentType =
-          _dependencies.data![currentDependencyType]!.length;
+    final int index = _updates.data!.indexOf(updateInformation);
 
-      for (int i = 0; i < lengthOfDependenciesOfCurrentType; ++i) {
-        final Dependency oldDependency =
-            _dependencies.data![currentDependencyType]![i];
-
-        final UpdateInformation? updateInformation =
-            _updates.data![oldDependency];
-
-        if (updateInformation == null || !updateInformation.shouldUpdate) {
-          logExceptRelease("DependencyChecker: $oldDependency was not updated");
-          continue;
-        }
-
-        final Dependency update = updateInformation.update;
-
-        _dependencies.data![currentDependencyType]![i] = update;
-
-        _dependencyToTypeMap!.remove(oldDependency);
-        _dependencyToTypeMap![update] = updateInformation.dependencyType;
-      }
+    if (index == -1) {
+      logExceptRelease("Element not found!");
+      return;
     }
 
-    final List<Dependency> oldDependencies = _updates.data!.keys.toList();
+    final UpdateInformation newUpdateInformation = updateInformation.copyWith(
+      updateTo: updateTo,
+    );
 
-    for (final Dependency oldDependency in oldDependencies) {
-      final UpdateInformation updateInformation =
-          _updates.data![oldDependency]!;
-      if (!updateInformation.shouldUpdate) {
-        logExceptRelease("UpdateChecker: $oldDependency was not updated");
-        continue;
-      }
-      _updates.data!.remove(oldDependency);
-      _updates.data![updateInformation.update] = updateInformation.copyWith(
-        updateType: UpdateType.noUpdate,
-        shouldUpdate: false,
-      );
+    _updates.data![index] = newUpdateInformation;
+  }
+
+  void _setUpdateToAll(ReleaseChannel updateTo) {
+    if (_updates.data == null) {
+      return;
+    }
+
+    final List<UpdateInformation> updatedList = _updates.data!
+        .map<UpdateInformation>(
+          (element) => element.copyWith(
+            updateTo: updateTo,
+          ),
+        )
+        .toList();
+
+    _countsCache.toUpdate =
+        updateTo == ReleaseChannel.none ? 0 : updatedList.length;
+
+    _updates.data!.replaceRange(0, _updates.data!.length, updatedList);
+  }
+
+  // UI
+  TextStyle? _getTextStyle(UpdateType updateType) {
+    switch (updateType) {
+      case UpdateType.update:
+        return const TextStyle(fontWeight: FontWeight.w700);
+      case UpdateType.majorUpdate:
+        return const TextStyle(fontWeight: FontWeight.w700, color: Colors.red);
+      case UpdateType.unknown:
+        return const TextStyle(color: Colors.red);
+      case UpdateType.noUpdate:
+        return null;
+      case UpdateType.higher:
+        return const TextStyle(fontWeight: FontWeight.w600);
     }
   }
 
@@ -551,7 +535,6 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
               showCurve: Curves.easeIn,
               hideCurve: Curves.easeOut,
               child: Text(statusMessage ?? ''),
-              //showDuration: const Duration(milliseconds: 750),
               transitionBuilder: (context, animation, child) => FadeTransition(
                 opacity: animation,
                 child: SizeTransition(
@@ -608,52 +591,52 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update all
         Obx(
           () {
-            final List<Dependency>? allDependencies = _dependencies.data?.values
-                .reduce(
-                  (value, element) => RxList(value.toList() + element.toList()),
-                )
-                .where(
-                  (element) => _updates.data?[element]?.isUpgradable ?? false,
-                )
-                .toList();
-            final int total = allDependencies?.length ?? 0;
+            final List<UpdateInformation>? allDependencies =
+                _updates.data?.toList();
+            final int total = _countsCache.total ??
+                (_countsCache.total = allDependencies?.length ?? 0);
 
-            final int toUpdate = allDependencies
-                    ?.where(
-                      (element) =>
-                          _updates.data?[element]?.shouldUpdate ?? false,
-                    )
-                    .length ??
-                0;
+            final int toUpdate = _countsCache.toUpdate ??
+                (_countsCache.toUpdate = allDependencies
+                        ?.where(
+                          (element) => element.isUpdating,
+                        )
+                        .length ??
+                    0);
 
-            final bool updateAll = (total != 0) && (total == toUpdate);
+            final bool ifUpdateAll = (total != 0) && (total == toUpdate);
 
             return SwitchListTile(
               dense: true,
               title: Row(
                 children: [
                   const Expanded(child: Text("Update All")),
-                  if ((_dependencies.data != null) && (_updates.data != null))
+                  if (allDependencies != null)
                     if (total != 0)
                       Text("($toUpdate/$total)")
                     else
                       const Text("No updates")
                 ],
               ),
-              value: updateAll,
-              onChanged: ((_dependencies.data != null) &&
-                      (_updates.data != null) &&
-                      (total != 0))
-                  ? _setShouldUpdateAll
+              value: ifUpdateAll,
+              onChanged: (allDependencies != null) && (total != 0)
+                  ? (x) {
+                      //TODO: implement prerelease
+                      final ReleaseChannel updateTo =
+                          x ? ReleaseChannel.stable : ReleaseChannel.none;
+                      _setUpdateToAll(updateTo);
+                    }
                   : null,
             );
           },
         ),
 
+        //! Search field
         SearchField(
           controller: _textEditingController!,
         ),
 
+        //! How many results are showing
         Align(
           alignment: Alignment.centerLeft,
           child: Padding(
@@ -662,17 +645,12 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
               children: [
                 Obx(
                   () {
-                    final int total = _dependencies.data?.values
-                            .reduce(
-                              (value, element) =>
-                                  RxList(value.toList() + element.toList()),
-                            )
-                            .length ??
-                        0;
-
-                    if (_dependencies.data == null) {
+                    if (_updates.data == null) {
                       return empty;
                     }
+
+                    final int total = _countsCache.total ??
+                        (_countsCache.total = _updates.data!.length);
 
                     return Text(
                       "Total: $total",
@@ -703,63 +681,28 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                 valueListenable: _textEditingController!,
                 builder: (context, textEditingValue, _) {
                   return DataGenerateObserver<
-                      SingleGenerateObservable<
-                          RxMap<DependencyType, RxList<Dependency>>>>(
-                    observable: _dependencies,
-                    builder: (dependenciesC) {
-                      _dependencyToTypeMap ??=
-                          Map<Dependency, DependencyType>.fromEntries(
-                        _dependencies.data!.entries
-                            .map<
-                                Iterable<MapEntry<Dependency, DependencyType>>>(
-                              (outerEntry) => outerEntry.value
-                                  .map<MapEntry<Dependency, DependencyType>>(
-                                (e) => MapEntry<Dependency, DependencyType>(
-                                  e,
-                                  outerEntry.key,
-                                ),
-                              ),
-                            )
-                            .reduce(
-                              (value, element) =>
-                                  value.toList() + element.toList(),
-                            ),
-                      );
-
-                      late final List<Dependency> allItems;
-
+                      SingleGenerateObservable<RxList<UpdateInformation>>>(
+                    observable: _updates,
+                    builder: (dependenciesController) {
+                      late final List<UpdateInformation> allItems;
                       {
-                        Iterable<Dependency> items = _dependencies.data!.values
-                            .reduce(
-                              (value, element) =>
-                                  RxList(value.toList() + element.toList()),
-                            )
-                            .map<Dependency>((element) => element);
+                        Iterable<UpdateInformation> items =
+                            dependenciesController.data!.toList();
 
                         if (showDifferencesOnly) {
                           items = items.where(
-                            (element) =>
-                                _updates.data![element]?.isUpgradable ?? false,
+                            (element) => element.updateAvailable,
                           );
                         }
+
                         final String filter =
                             textEditingValue.text.trim().toLowerCase();
+
                         if (filter.isNotEmpty) {
-                          if (_updates.data == null) {
-                            items = items.where(
-                              (element) =>
-                                  element.name.toLowerCase().contains(filter),
-                            );
-                          } else {
-                            items = items.where(
-                              (element) =>
-                                  element.name.toLowerCase().contains(filter) ||
-                                  (_updates.data![element]?.updateDetails
-                                          .toLowerCase()
-                                          .contains(filter) ??
-                                      false),
-                            );
-                          }
+                          items = items.where(
+                            (element) =>
+                                element.name.toLowerCase().contains(filter),
+                          );
                         }
                         allItems = items.toList();
                       }
@@ -769,109 +712,103 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                       });
 
                       return Card(
-                        child: GroupedListView<Dependency, DependencyType>(
+                        child:
+                            GroupedListView<UpdateInformation, DependencyType>(
                           sort: false,
                           useStickyGroupSeparators: true,
                           floatingHeader: true,
                           elements: allItems,
                           groupBy: (x) {
-                            return _dependencyToTypeMap![x]!;
+                            return x.dependencyType;
                           },
-                          groupSeparatorBuilder: (x) => ColoredBox(
+                          groupSeparatorBuilder: (dependencyType) => ColoredBox(
                             child: Obx(
                               () {
-                                _updates.data;
-                                final int updates = _dependencies.data?[x]
+                                // These are for subtitle elements
+                                final _IndividualCountCache counts =
+                                    _countsCache
+                                            .individualCounts[dependencyType] ??
+                                        _IndividualCountCache.zero();
+                                final int stableUpdates = counts.updates!;
+                                final int majorStableUpdates =
+                                    counts.majorUpdates!;
+                                final int higherStable = counts.higher!;
+                                final int unknownStable = counts.unknown!;
+
+                                /*stableUpdates = _updates.data
                                         ?.where(
                                           (element) =>
-                                              _updates
-                                                  .data?[element]?.updateType ==
-                                              UpdateType.update,
+                                              (element.stableUpdateType ==
+                                                  UpdateType.update) &&
+                                              (element.dependencyType ==
+                                                  dependencyType),
                                         )
                                         .length ??
                                     0;
-                                final int majorUpdates = _dependencies.data?[x]
+
+                                majorStableUpdates = _updates.data
                                         ?.where(
                                           (element) =>
-                                              _updates
-                                                  .data?[element]?.updateType ==
-                                              UpdateType.majorUpdate,
+                                              (element.stableUpdateType ==
+                                                  UpdateType.majorUpdate) &&
+                                              (element.dependencyType ==
+                                                  dependencyType),
                                         )
                                         .length ??
                                     0;
-                                final int higher = _dependencies.data?[x]
+
+                                higherStable = _updates.data
                                         ?.where(
                                           (element) =>
-                                              _updates
-                                                  .data?[element]?.updateType ==
+                                              element.stableUpdateType ==
                                               UpdateType.higher,
                                         )
                                         .length ??
                                     0;
-                                final int unknown = _dependencies.data?[x]
+
+                                unknownStable = _updates.data
                                         ?.where(
                                           (element) =>
-                                              _updates
-                                                  .data?[element]?.updateType ==
-                                              UpdateType.unknown,
+                                              element.stableUpdateType ==
+                                              UpdateType.higher,
                                         )
                                         .length ??
-                                    0;
+                                    0;*/
+
                                 final List<String> subtitleElements = [
-                                  if (updates > 0) "Updates: $updates",
-                                  if (majorUpdates > 0)
-                                    "Major Updates: $majorUpdates",
-                                  if (higher > 0) "Higher: $higher",
-                                  if (unknown > 0) "Unknown: $unknown",
+                                  if (stableUpdates > 0)
+                                    "Updates: $stableUpdates",
+                                  if (majorStableUpdates > 0)
+                                    "Major Updates: $majorStableUpdates",
+                                  if (higherStable > 0) "Higher: $higherStable",
+                                  if (unknownStable > 0)
+                                    "Unknown: $unknownStable",
+                                ];
+
+                                // Title elements
+                                final int toUpdate = counts.toUpdate!;
+                                final int unmatches = counts.unmatched!;
+                                final int total = counts.total!;
+
+                                final bool shouldShowCountElements =
+                                    _updates.data != null;
+
+                                final List<String> titleCountElements = [
+                                  "Selected: $toUpdate",
+                                  "Updates: $unmatches",
+                                  "Total: $total",
+                                ];
+
+                                final List<String> titleElements = [
+                                  dependencyType.prettyName,
+                                  if (shouldShowCountElements)
+                                    "(${titleCountElements.join(" / ")})",
                                 ];
 
                                 return ListTile(
-                                  title: Obx(
-                                    () {
-                                      final int toUpdate =
-                                          _dependencies.data?[x]
-                                                  ?.where(
-                                                    (element) =>
-                                                        _updates.data?[element]
-                                                            ?.shouldUpdate ??
-                                                        false,
-                                                  )
-                                                  .length ??
-                                              0;
-
-                                      final int updates = _dependencies.data?[x]
-                                              ?.where(
-                                                (element) =>
-                                                    _updates.data?[element]
-                                                        ?.isUpgradable ??
-                                                    false,
-                                              )
-                                              .length ??
-                                          0;
-
-                                      final List<String> counts = [
-                                        if (_dependencies.data != null &&
-                                            _updates.data != null)
-                                          "Selected: $toUpdate",
-                                        if (_dependencies.data != null &&
-                                            _updates.data != null)
-                                          "Updates: $updates",
-                                        if (_dependencies.data != null)
-                                          "Total: ${_dependencies.data![x]?.length}",
-                                      ];
-
-                                      final List<String> elements = [
-                                        x.prettyName,
-                                        if (counts.isNotEmpty)
-                                          "(${counts.join(" / ")})",
-                                      ];
-
-                                      return Text(
-                                        elements.join(" "),
-                                        style:
-                                            TextStyle(color: headerTextColor),
-                                      );
-                                    },
+                                  title: Text(
+                                    titleElements.join(" "),
+                                    style: TextStyle(color: headerTextColor),
                                   ),
                                   subtitle: subtitleElements.isEmpty
                                       ? null
@@ -886,36 +823,38 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                             ),
                             color: primaryColor,
                           ),
-                          indexedItemBuilder: (context, item, index) {
+                          indexedItemBuilder:
+                              (context, updateInformation, index) {
                             return Obx(
                               () {
-                                final UpdateInformation? updateInformation =
-                                    _updates.data?[item];
+                                _updates.data; // Very important task
                                 return Tooltip(
                                   waitDuration: const Duration(seconds: 1),
                                   message: updateInformation
-                                          ?.updateType.description ??
+                                          .updateType?.description ??
                                       "",
                                   child: SwitchListTile(
-                                    key: ValueKey<Dependency>(item),
+                                    key: ValueKey<UpdateInformation>(
+                                      updateInformation,
+                                    ),
                                     dense: true,
-                                    title: Text(item.toString()),
+                                    title: Text(updateInformation.toString()),
                                     subtitle: Text(
-                                      updateInformation?.updateDetails ?? "",
+                                      updateInformation.updateDetails,
                                       style: _getTextStyle(
-                                        updateInformation?.updateType,
+                                        updateInformation.stableUpdateType,
                                       ),
                                       textScaleFactor: 0.9,
                                     ),
-                                    value: updateInformation?.shouldUpdate ??
-                                        false,
+                                    value: updateInformation.isUpdating,
                                     onChanged:
-                                        (updateInformation?.isUpgradable ??
-                                                false)
+                                        (updateInformation.updateAvailable)
                                             ? (shouldUpdate) {
-                                                _setShouldUpdate(
-                                                  item,
-                                                  shouldUpdate,
+                                                _setUpdateTo(
+                                                  updateInformation,
+                                                  shouldUpdate
+                                                      ? ReleaseChannel.stable
+                                                      : ReleaseChannel.none,
                                                 );
                                               }
                                             : null,
@@ -927,9 +866,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                         ),
                       );
                     },
-                    dataIsEmpty: (x) =>
-                        x.data?.values.every((element) => element.isEmpty) ??
-                        true,
+                    dataIsEmpty: (x) => x.data?.isEmpty ?? true,
                   );
                 },
               );
@@ -941,9 +878,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         Obx(
           () {
             final FeedbackCallback? onPressed = ((_updates.data == null) ||
-                    (!_updates.data!.entries.any((element) {
-                      logExceptRelease("${element.value}");
-                      return element.value.shouldUpdate;
+                    (!_updates.data!.any((element) {
+                      //logExceptRelease("${element.value}");
+                      return element.isUpdating;
                     })))
                 ? null
                 : _update;
@@ -961,4 +898,46 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       ],
     );
   }
+}
+
+class _CountsCache {
+  int? total;
+  int? toUpdate;
+  final Map<DependencyType, _IndividualCountCache> individualCounts = {};
+
+  void clear() {
+    total = null;
+    toUpdate = null;
+    individualCounts.clear();
+  }
+}
+
+class _IndividualCountCache {
+  int? updates;
+  int? majorUpdates;
+  int? higher;
+  int? unknown;
+  int? prerelease;
+  int? toUpdate;
+  int? total;
+  int? unmatched;
+
+  _IndividualCountCache.zero({
+    // ignore: unused_element
+    this.updates = 0,
+    // ignore: unused_element
+    this.majorUpdates = 0,
+    // ignore: unused_element
+    this.higher = 0,
+    // ignore: unused_element
+    this.unknown = 0,
+    // ignore: unused_element
+    this.prerelease = 0,
+    // ignore: unused_element
+    this.toUpdate = 0,
+    // ignore: unused_element
+    this.total = 0,
+    // ignore: unused_element
+    this.unmatched = 0,
+  });
 }

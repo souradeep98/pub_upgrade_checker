@@ -20,6 +20,17 @@ class Dependency extends Equatable {
       )
       .toList();
 
+  /// Example: google_fonts: ^3.0.1
+  factory Dependency.fromConstraintString(String string) {
+    final List<String> parts =
+        string.split(":").map<String>((e) => e.trim()).toList();
+    return Dependency(
+      name: parts[0],
+      versionConstraint: VersionConstraint.parse(parts[1]),
+    );
+  }
+
+  /// Example:
   factory Dependency.fromString(String string) {
     final List<String> parts =
         string.split(":").map<String>((e) => e.trim()).toList();
@@ -27,6 +38,13 @@ class Dependency extends Equatable {
       name: parts[0],
       versionConstraint: VersionConstraint.parse(parts[1]),
     );
+  }
+
+  static Dependency? maybeFromMetaDataHTMLElement(html.Element? element) {
+    if (element == null) {
+      return null;
+    }
+    return null;
   }
 
   @override
@@ -40,34 +58,13 @@ class Dependency extends Equatable {
     return "$name: $versionConstraint";
   }
 
-  bool isSame(Object other) =>
+  bool isSame(Object? other) =>
       ((other is Dependency) && (other.name == name)) ||
-      ((other is UpdateInformation) && isSame(other.update));
-
-  /*bool operator >(Object other) {
-    if (other is Dependency) {
-      return other.versionConstraint.version > versionConstraint.version;
-    }
-
-    if (other is Version) {
-      return other > versionConstraint.version;
-    }
-
-    if (other is VersionConstraint) {
-      return other.version > versionConstraint.version;
-    }
-
-    return false;
-    /*return ((other is Dependency) &&
-            (other.versionConstraint.version > versionConstraint.version)) ||
-        ((other is VersionConstraint) &&
-            (other.version > versionConstraint.version)) ||
-        ((other is Version) && other > versionConstraint.version);*/
-  }*/
+      ((other is UpdateInformation) && isSame(other.current));
 
   bool operator >(Object other) {
     assert(isSame(other));
-    return ((other is UpdateInformation) && this > other.update) ||
+    return ((other is UpdateInformation) && this > other.current) ||
         ((other is Dependency) &&
             (versionConstraint.version > other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
@@ -77,8 +74,7 @@ class Dependency extends Equatable {
 
   bool operator <(Object other) {
     assert(isSame(other));
-    return ((other is UpdateInformation) && this < other.update) ||
-        ((other is Dependency) &&
+    return ((other is Dependency) &&
             (versionConstraint.version < other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
             (versionConstraint.version < other.version)) ||
@@ -87,8 +83,7 @@ class Dependency extends Equatable {
 
   bool operator >=(Object other) {
     assert(isSame(other));
-    return ((other is UpdateInformation) && this >= other.update) ||
-        ((other is Dependency) &&
+    return ((other is Dependency) &&
             (versionConstraint.version >= other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
             (versionConstraint.version >= other.version)) ||
@@ -97,16 +92,14 @@ class Dependency extends Equatable {
 
   bool operator <=(Object other) {
     assert(isSame(other));
-    return ((other is UpdateInformation) && this <= other.update) ||
-        ((other is Dependency) &&
+    return ((other is Dependency) &&
             (versionConstraint.version <= other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
             (versionConstraint.version <= other.version)) ||
         ((other is Version) && versionConstraint.version <= other);
   }
 
-  bool allows(Object other) =>
-      ((other is UpdateInformation) && isSame(other) && allows(other.update)) ||
+  bool allows(Object? other) =>
       ((other is Dependency) &&
           isSame(other) &&
           versionConstraint.allowsAny(other.versionConstraint)) ||

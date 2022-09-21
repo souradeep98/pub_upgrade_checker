@@ -12,5 +12,6 @@ import 'package:pub_upgrade_checker/src/structures.dart';
 import 'package:pub_upgrade_checker/src/utils.dart';
 
 import 'package:flutter_essentials/flutter_essentials.dart';
+import 'package:pub_upgrade_checker/src/widgets.dart';
 
 part 'pages/home.dart';

@@ -46,17 +46,18 @@ enum UpdateType {
     }
   }
 
-  static UpdateType getUpdateType(Dependency base, Dependency other) {
-    if (other == base) {
+  static UpdateType getUpdateType(Dependency current, Dependency? other) {
+    if ((other == null) || (other == current)) {
       return noUpdate;
     }
-    if (other > base) {
-      if (other.allows(base)) {
+    
+    if (other > current) {
+      if (other.allows(current)) {
         return update;
       }
       return majorUpdate;
     }
-    if (other < base) {
+    if (other < current) {
       return higher;
     }
     return unknown;
