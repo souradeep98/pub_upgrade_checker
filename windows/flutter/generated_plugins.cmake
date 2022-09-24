@@ -3,9 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  bitsdojo_window_windows
   connectivity_plus_windows
-  flutter_acrylic
   screen_retriever
   window_manager
 )

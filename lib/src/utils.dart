@@ -684,7 +684,7 @@ Future<List<UpdateInformation>> getUpdates(
     ),
   );
 
-  hideStatusMessage(workStatusMessage);
+  //hideStatusMessage(workStatusMessage);
 
   return results;
 }
@@ -745,7 +745,7 @@ Future<void> updateDependencies({
   );
 
   final List<UpdateInformation> filteredUpdateInformations =
-      updateInformations.where((element) => element.isUpdating).toList();
+      updateInformations.where((element) => element.setToUpdate).toList();
 
   checkOperation();
 
@@ -764,7 +764,8 @@ Future<void> updateDependencies({
     checkOperation();
     final UpdateInformation updateInformation = filteredUpdateInformations[i];
 
-    final Dependency? update = updateInformation.updateAvailable
+    // TODO: implement prerelease
+    final Dependency? update = updateInformation.isStableUpgradable
         ? updateInformation.stableUpdate
         : null;
 

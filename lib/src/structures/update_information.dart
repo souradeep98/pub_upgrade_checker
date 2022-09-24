@@ -41,7 +41,7 @@ class UpdateInformation extends Equatable {
     }
   }
 
-  UpdateType? get updateType {
+  UpdateType? get updateTypeOfCurrentChannel {
     if (stableUpdate == null) {
       return null;
     }
@@ -59,7 +59,8 @@ class UpdateInformation extends Equatable {
   bool get isPrereleaseUpgradable =>
       prereleaseUpdateType != UpdateType.noUpdate;
 
-  bool get updateAvailable => isStableUpgradable || isPrereleaseUpgradable;
+  bool get updateAvailableForAnyChannel =>
+      isStableUpgradable || isPrereleaseUpgradable;
 
   bool get updateAvailableForCurrentChannel {
     switch (currentChannel) {
@@ -83,7 +84,7 @@ class UpdateInformation extends Equatable {
 
   String get name => current.name;
 
-  bool get isUpdating => updateTo != ReleaseChannel.none;
+  bool get setToUpdate => updateTo != ReleaseChannel.none;
 
   const UpdateInformation({
     required this.current,
@@ -98,8 +99,12 @@ class UpdateInformation extends Equatable {
       ((other is UpdateInformation) && isSame(other.current));
 
   @override
-  List<Object?> get props =>
-      [stableUpdate, prereleaseUpdate, dependencyType, updateTo];
+  List<Object?> get props => [
+        stableUpdate,
+        prereleaseUpdate,
+        dependencyType,
+        updateTo,
+      ];
 
   UpdateInformation copyWith({
     Dependency? current,
@@ -115,6 +120,21 @@ class UpdateInformation extends Equatable {
       dependencyType: dependencyType ?? this.dependencyType,
       updateTo: updateTo ?? this.updateTo,
     );
+  }
+
+  UpdateInformation shouldUpdate(bool value) {
+    if (value) {
+      if (updateAvailableForCurrentChannel) {
+        return copyWith(
+          updateTo: currentChannel,
+        );
+      }
+      return this;
+    } else {
+      return copyWith(
+        updateTo: ReleaseChannel.none,
+      );
+    }
   }
 
   UpdateInformation updatedVersion() => copyWith(

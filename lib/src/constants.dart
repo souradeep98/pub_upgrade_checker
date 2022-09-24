@@ -18,9 +18,11 @@ abstract class AppThemes {
 
   static final ThemeData darkTheme = ThemeData(
     brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color.fromARGB(255, 22, 22, 28),
+    backgroundColor: const Color.fromARGB(255, 22, 22, 28),
     extensions: const [
       PUCAppBarThemeData(
-        backgroundColor: Color.fromARGB(255, 11, 2, 32),
+        backgroundColor: Color.fromARGB(255, 22, 22, 28),
       ),
     ],
   );
