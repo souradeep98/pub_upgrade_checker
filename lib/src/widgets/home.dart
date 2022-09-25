@@ -1,4 +1,4 @@
-part of pages;
+part of widgets;
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -23,104 +23,29 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  /*
-  Future<void> _test() async {
-    final File file = File("D:\\tests\\pubspec1.yaml");
-
-    final String yamlContent = await file.readAsString();
-
-    //final yaml.YamlDocument document = yaml.loadYamlDocument(yamlContent);
-
-    final YamlEditor yamlEditor = YamlEditor(yamlContent);
-
-    /*final Map contentAsJson = jsonDecode(jsonEncode(document.contents)) as Map;
-
-    final Map dependenciesMap = (contentAsJson["dependencies"] as Map)
-        .cast<String, dynamic>()
-        .filterOutWhere((key, value) => key == "flutter" || value is! String);
-    final Map devDependenciesMap = (contentAsJson["dev_dependencies"] as Map)
-        .cast<String, dynamic>()
-        .filterOutWhere(
-          (key, value) => key == "flutter_test" || value is! String,
-        );
-
-    const String pubBaseUrl = "https://pub.dev/packages/";
-
-    final List<Dependency> dependencies =
-        Dependency.listFromMap(dependenciesMap);
-
-    final List<Dependency> devDependencies =
-        Dependency.listFromMap(devDependenciesMap);
-
-    final List<Dependency> allDependencies = dependencies + devDependencies;
-
-    for (final Dependency x in allDependencies) {
-      logExceptRelease("\nDependency: ${x.name}: ${x.versionConstraint}");
-      final Uri uri = Uri.parse(pubBaseUrl + x.name);
-      final Response response = await HTTP.get(uri);
-
-      final html.Document htmlDoc = html.Document.html(response.body);
-
-      final html.Element? element = htmlDoc.querySelector(
-        "body > main > div.detail-wrapper.-active.-has-info-box > div.detail-header.-is-loose > div > div > div > h1 > span > div > span",
-      );
-
-      if (element == null) {
-        logExceptRelease("Could Not Find Element in html");
-        continue;
-      }
-
-      logExceptRelease("HTML element: ${element.innerHtml}");
-
-      final Dependency update = Dependency.fromString(element.innerHtml);
-
-      logExceptRelease("Update: $update");
-
-      logExceptRelease(update > x ? "Update available!" : "Latest!");
-    }*/
-
-    logExceptRelease("Before update: $yamlEditor");
-
-    yamlEditor.update(
-      [
-        "dependencies",
-        "cupertino_icons",
-      ],
-      null,
-    );
-
-    logExceptRelease("After update: $yamlEditor");
-
-    //yamlEditor.toString();
-  }
-  */
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const PUCAppBar(),
-      body: SafeArea(
-        child: ValueListenableBuilder<File?>(
-          valueListenable: _selectedFile,
-          builder: (context, file, pickFile) {
-            if (file == null) {
-              return pickFile!;
-            }
-            return DependencyReviewer(
-              file: file,
-              onCloseFile: () {
-                _selectedFile.value = null;
-              },
-              onPickAnotherFile: (x) {
-                _selectedFile.value = x;
-              },
-            );
-          },
-          child: PickFile(
-            onPick: (x) {
+    return SafeArea(
+      child: ValueListenableBuilder<File?>(
+        valueListenable: _selectedFile,
+        builder: (context, file, pickFile) {
+          if (file == null) {
+            return pickFile!;
+          }
+          return DependencyReviewer(
+            file: file,
+            onCloseFile: () {
+              _selectedFile.value = null;
+            },
+            onPickAnotherFile: (x) {
               _selectedFile.value = x;
             },
-          ),
+          );
+        },
+        child: PickFile(
+          onPick: (x) {
+            _selectedFile.value = x;
+          },
         ),
       ),
     );

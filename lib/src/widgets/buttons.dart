@@ -15,10 +15,10 @@ class FavouredButton extends StatefulWidget {
 }
 
 class FavouredButtonState extends State<FavouredButton>
-    with SingleTickerProviderStateMixin {
+    with Blinking, SingleTickerProviderStateMixin {
+
+  @override
   late final AnimationController _animationController;
-  bool _hoverToStopBlinking = true;
-  double _maxBlinkTime = double.infinity;
 
   @override
   void initState() {
@@ -47,36 +47,17 @@ class FavouredButtonState extends State<FavouredButton>
     super.dispose();
   }
 
-  Future<void> startBlinking({
-    bool hoverToStopBlinking = true,
-    double maximumTimes = double.infinity,
-  }) async {
-    _hoverToStopBlinking = hoverToStopBlinking;
-    _maxBlinkTime = maximumTimes - 1;
-    _animationController.reset();
-
-    await Future.doWhile(() async {
-      await _animationController.forward();
-      await _animationController.reverse();
-      return (_maxBlinkTime--) > 0;
-    });
-  }
-
-  void stopBlinking() {
-    _maxBlinkTime = 0;
-    _animationController.reset();
-  }
 
   final ColorTween _backgroundColorAnimation = ColorTween(
     begin: Colors.white10.withOpacity(0.1),
-    end: Colors.white10.withOpacity(0.3),
+    end: Colors.white10.withOpacity(0.4),
   );
 
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (event) {
-        if (_hoverToStopBlinking) {
+        if (hoverToStopBlinking) {
           stopBlinking();
         }
       },
@@ -152,10 +133,9 @@ class AlternateChoiceButton extends StatefulWidget {
 }
 
 class AlternateChoiceButtonState extends State<AlternateChoiceButton>
-    with SingleTickerProviderStateMixin {
+    with Blinking, SingleTickerProviderStateMixin {
+  @override
   late final AnimationController _animationController;
-  bool _hoverToStopBlinking = true;
-  double _maxBlinkTime = double.infinity;
 
   @override
   void initState() {
@@ -182,26 +162,6 @@ class AlternateChoiceButtonState extends State<AlternateChoiceButton>
     super.dispose();
   }
 
-  Future<void> startBlinking({
-    bool hoverToStopBlinking = true,
-    double maximumTimes = double.infinity,
-  }) async {
-    _hoverToStopBlinking = hoverToStopBlinking;
-    _maxBlinkTime = maximumTimes - 1;
-    _animationController.reset();
-
-    await Future.doWhile(() async {
-      await _animationController.forward();
-      await _animationController.reverse();
-      return (_maxBlinkTime--) > 0;
-    });
-  }
-
-  void stopBlinking() {
-    _maxBlinkTime = 0;
-    _animationController.reset();
-  }
-
   final ColorTween _colorTween = ColorTween(
     begin: Colors.white54,
     end: Colors.white,
@@ -211,7 +171,7 @@ class AlternateChoiceButtonState extends State<AlternateChoiceButton>
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (event) {
-        if (_hoverToStopBlinking) {
+        if (hoverToStopBlinking) {
           stopBlinking();
         }
       },

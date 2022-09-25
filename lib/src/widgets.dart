@@ -1,13 +1,26 @@
 library widgets;
 
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 
+import 'package:async/async.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_essentials/flutter_essentials.dart';
+import 'package:get/get.dart';
+import 'package:grouped_list/grouped_list.dart';
 import 'package:pub_upgrade_checker/src/constants.dart';
+import 'package:pub_upgrade_checker/src/globals.dart';
+import 'package:pub_upgrade_checker/src/structures.dart';
+import 'package:pub_upgrade_checker/src/utils.dart';
 import 'package:window_manager/window_manager.dart';
 
-part 'widgets/close_button.dart';
+part 'widgets/desktop_window_control_buttons.dart';
 part 'widgets/app_bar.dart';
 part 'widgets/settings.dart';
 part 'widgets/buttons.dart';
+part 'widgets/home.dart';
+part 'widgets/desktop_frame.dart';
+part 'widgets/utils/blinking.dart';

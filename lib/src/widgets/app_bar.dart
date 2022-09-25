@@ -1,7 +1,7 @@
 part of widgets;
 
-class PUCAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const PUCAppBar({super.key});
+/*class _PUCAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _PUCAppBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,4 +29,4 @@ class PUCAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
     return AppBar().preferredSize;
   }
-}
+}*/
