@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:pub_upgrade_checker/src/constants.dart';
 import 'package:pub_upgrade_checker/src/pages.dart';
 import 'package:pub_upgrade_checker/src/widgets.dart';
@@ -17,7 +16,7 @@ class PubUpgradeChecker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget result = MaterialApp(
+    final Widget result = MaterialApp(
       color: Colors.transparent,
       debugShowCheckedModeBanner: false,
       title: 'Pub Upgrade Checker',
@@ -25,11 +24,11 @@ class PubUpgradeChecker extends StatelessWidget {
       theme: AppThemes.darkTheme,
     );
 
-    if (isDesktop) {
+    /*if (isDesktop) {
       result = DesktopFrame(
         child: result,
       );
-    }
+    }*/
 
     return result;
   }

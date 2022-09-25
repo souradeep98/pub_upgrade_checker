@@ -45,6 +45,7 @@ class DesktopFrame extends StatefulWidget {
 
 class _DesktopFrameState extends State<DesktopFrame>
     with WindowListener, TickerProviderStateMixin {
+  TextDirection? _textDirection;
   // Vars
   late final AnimationController _initialAnimationController;
   late final AnimationController _windowAnimationController;
@@ -214,7 +215,9 @@ class _DesktopFrameState extends State<DesktopFrame>
           ),
         ),
       )
-      .resolve(TextDirection.ltr);
+      .resolve(
+        _textDirection ??= Directionality.of(context),
+      );
 
   final EdgeInsetsTween _paddingTween = EdgeInsetsTween(
     begin: const EdgeInsets.only(
@@ -304,85 +307,82 @@ class _DesktopFrameState extends State<DesktopFrame>
       ),
     );
 
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: ValueListenableBuilder<bool>(
-        valueListenable: _initialized,
-        builder: (context, initialized, child) {
-          return AbsorbPointer(
-            absorbing: !initialized,
+    return ValueListenableBuilder<bool>(
+      valueListenable: _initialized,
+      builder: (context, initialized, child) {
+        return AbsorbPointer(
+          absorbing: !initialized,
+          child: child,
+        );
+      },
+      child: AnimatedBuilder(
+        animation: _initialAnimationController,
+        builder: (context, child) {
+          //logExceptRelease("Scale Animation Value: ${_scaleAnimation.value}");
+          return ScaleTransition(
+            scale: _scaleAnimation,
+            alignment: _alignmentValue,
             child: child,
           );
         },
         child: AnimatedBuilder(
-          animation: _initialAnimationController,
+          animation: _windowAnimationController,
           builder: (context, child) {
-            //logExceptRelease("Scale Animation Value: ${_scaleAnimation.value}");
-            return ScaleTransition(
-              scale: _scaleAnimation,
-              alignment: _alignmentValue,
+            //logExceptRelease("Padding Value: $_paddingValue");
+            return Padding(
+              padding: _paddingValue,
               child: child,
             );
           },
-          child: AnimatedBuilder(
-            animation: _windowAnimationController,
-            builder: (context, child) {
-              //logExceptRelease("Padding Value: $_paddingValue");
-              return Padding(
-                padding: _paddingValue,
-                child: child,
-              );
-            },
-            child: FadeTransition(
-              opacity: _initialFadeAnimation,
-              child: RotationTransition(
-                turns: _rotationAnimation,
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _initialized,
-                  builder: (context, isInitialized, cchild) {
-                    return AnimatedBuilder(
-                      //Clipper
-                      animation: isInitialized
-                          ? _windowAnimationController
-                          : _initialAnimationController,
-                      builder: (context, logoImage) {
-                        return PhysicalShape(
-                          elevation: 10,
-                          clipBehavior: Clip.antiAliasWithSaveLayer,
-                          color: Colors.transparent,
-                          clipper: ShapeBorderClipper(
-                            shape: isInitialized
-                                ? _borderValueAfterInitialization
-                                : _initialBorderValue,
-                          ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            fit: StackFit.expand,
-                            children: [
-                              appContent,
-                              logoImage!,
-                            ],
-                          ),
-                        );
-                      },
-                      child: ValueListenableBuilder<bool>(
-                        // Logo Image
-                        valueListenable: _initialized,
-                        builder: (context, value, child) => IgnorePointer(
-                          ignoring: value,
-                          child: child,
+          child: FadeTransition(
+            opacity: _initialFadeAnimation,
+            child: RotationTransition(
+              turns: _rotationAnimation,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _initialized,
+                builder: (context, isInitialized, cchild) {
+                  return AnimatedBuilder(
+                    //Clipper
+                    animation: isInitialized
+                        ? _windowAnimationController
+                        : _initialAnimationController,
+                    builder: (context, logoImage) {
+                      return PhysicalShape(
+                        elevation: 10,
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
+                        color: Colors.transparent,
+                        clipper: ShapeBorderClipper(
+                          shape: isInitialized
+                              ? _borderValueAfterInitialization
+                              : _initialBorderValue,
                         ),
-                        child: FadeTransition(
-                          opacity: _logoFadeAnimation,
-                          child: Image.asset(
-                            "assets/pexels-benjamin-suter-3617500.jpg",
-                            fit: BoxFit.cover,
-                          ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          fit: StackFit.expand,
+                          children: [
+                            appContent,
+                            logoImage!,
+                          ],
+                        ),
+                      );
+                    },
+                    child: ValueListenableBuilder<bool>(
+                      // Logo Image
+                      valueListenable: _initialized,
+                      builder: (context, value, child) => IgnorePointer(
+                        ignoring: value,
+                        child: child,
+                      ),
+                      child: FadeTransition(
+                        opacity: _logoFadeAnimation,
+                        child: Image.asset(
+                          "assets/pexels-benjamin-suter-3617500.jpg",
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -416,6 +416,7 @@ class _Frame extends StatefulWidget {
 
 class _FrameState extends State<_Frame>
     with SingleTickerProviderStateMixin, WindowListener {
+  TextDirection? _textDirection;
   late final AnimationController _animationController;
 
   @override
@@ -477,7 +478,9 @@ class _FrameState extends State<_Frame>
 
     //assert(titleBarHeight >= minI, "Must be greater than $minI");
 
-    final EdgeInsets insets = edges.resolve(TextDirection.ltr);
+    final EdgeInsets insets = edges.resolve(
+      _textDirection ??= Directionality.of(context),
+    );
 
     assert(
       [

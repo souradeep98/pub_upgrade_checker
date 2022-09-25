@@ -5,8 +5,11 @@ class AppFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Home(),
-    );
+    Widget content = const Scaffold(body:  Home());
+    
+    if (isDesktop)  {
+      content = DesktopFrame(child: content);
+    }
+    return content;
   }
 }
