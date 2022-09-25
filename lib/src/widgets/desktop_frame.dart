@@ -157,10 +157,10 @@ class _DesktopFrameState extends State<DesktopFrame>
     setState(() {});
   }
 
-  @override
+  /*@override
   void onWindowEvent(String event) {
     logExceptRelease("Window Event: $event");
-  }
+  }*/
 
   @override
   void onWindowMaximize() {
@@ -327,7 +327,7 @@ class _DesktopFrameState extends State<DesktopFrame>
           child: AnimatedBuilder(
             animation: _windowAnimationController,
             builder: (context, child) {
-              logExceptRelease("Padding Value: $_paddingValue");
+              //logExceptRelease("Padding Value: $_paddingValue");
               return Padding(
                 padding: _paddingValue,
                 child: child,

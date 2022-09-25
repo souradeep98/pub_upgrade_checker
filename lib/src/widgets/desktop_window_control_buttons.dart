@@ -119,9 +119,11 @@ class MaximizeButton extends StatefulWidget {
 }
 
 class _MaximizeButtonState extends State<MaximizeButton>
-    with Blinking, SingleTickerProviderStateMixin, WindowListener {
+    with Blinking, TickerProviderStateMixin, WindowListener {
   @override
   late final AnimationController _animationController;
+
+  late final AnimationController _windowAnimationController;
 
   late final ValueNotifier<bool> _isMaximized;
 
@@ -133,7 +135,12 @@ class _MaximizeButtonState extends State<MaximizeButton>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+    _windowAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
     _isMaximized = ValueNotifier<bool>(false);
+    _alignmentAnimation = _alignmentTween.animate(_windowAnimationController);
   }
 
   @override
@@ -141,6 +148,7 @@ class _MaximizeButtonState extends State<MaximizeButton>
     windowManager.removeListener(this);
     _isMaximized.dispose();
     _animationController.dispose();
+    _windowAnimationController.dispose();
     super.dispose();
   }
 
@@ -158,6 +166,13 @@ class _MaximizeButtonState extends State<MaximizeButton>
 
   }*/
 
+  final Tween<AlignmentGeometry> _alignmentTween = Tween<AlignmentGeometry>(
+    begin: Alignment.center,
+    end: Alignment.topRight,
+  );
+
+  late final Animation<AlignmentGeometry> _alignmentAnimation;
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -170,15 +185,7 @@ class _MaximizeButtonState extends State<MaximizeButton>
         animation: _animationController,
         builder: (context, child) {
           return ElevatedButton(
-            child: ValueListenableBuilder<bool>(
-              valueListenable: _isMaximized,
-              builder: (context, isMaximized, _) {
-                return const Icon(
-                  Icons.rectangle_outlined,
-                  size: _kDesktopWindowControlButtonIconSize,
-                );
-              },
-            ),
+            child: child,
             onPressed: () async {
               final bool isMaximized = _isMaximized.value;
               if (isMaximized) {
@@ -239,6 +246,40 @@ class _MaximizeButtonState extends State<MaximizeButton>
             ),
           );
         },
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _isMaximized,
+          builder: (context, isMaximized, _) {
+            return SizedBox(
+              width: 20,
+              height: 20,
+              child: Stack(
+                fit: StackFit.expand,
+                alignment: Alignment.center,
+                children: [
+                  AlignTransition(
+                    alignment: _alignmentAnimation,
+                    child: const Icon(
+                      Icons.rectangle_outlined,
+                      size: _kDesktopWindowControlButtonIconSize,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: AnimatedShowHide(
+                      showDuration: const Duration(milliseconds: 200),
+                      hideDuration: const Duration(milliseconds: 200),
+                      isShown: isMaximized,
+                      child: const Icon(
+                        Icons.rectangle_outlined,
+                        size: _kDesktopWindowControlButtonIconSize,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
