@@ -23,13 +23,6 @@ class PubUpgradeChecker extends StatelessWidget {
       home: const AppFrame(),
       theme: AppThemes.darkTheme,
     );
-
-    /*if (isDesktop) {
-      result = DesktopFrame(
-        child: result,
-      );
-    }*/
-
     return result;
   }
 }

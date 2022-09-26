@@ -10,8 +10,7 @@ class CloseButton extends StatefulWidget {
 }
 
 class _CloseButtonState extends State<CloseButton>
-    with Blinking, SingleTickerProviderStateMixin {
-  @override
+    with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
 
   @override
@@ -33,9 +32,6 @@ class _CloseButtonState extends State<CloseButton>
   Widget build(BuildContext context) {
     return MouseRegion(
       onEnter: (event) {
-        if (hoverToStopBlinking) {
-          stopBlinking();
-        }
       },
       child: AnimatedBuilder(
         animation: _animationController,
@@ -61,8 +57,6 @@ class _CloseButtonState extends State<CloseButton>
                   return Colors.white54;
                 }
               }),
-              /*backgroundColor:
-                  const MaterialStatePropertyAll(Colors.transparent),*/
               backgroundColor:
                   MaterialStateProperty.resolveWith<Color>((states) {
                 if (states.contains(MaterialState.hovered)) {
@@ -74,33 +68,8 @@ class _CloseButtonState extends State<CloseButton>
               overlayColor: const MaterialStatePropertyAll(Colors.transparent),
               surfaceTintColor:
                   const MaterialStatePropertyAll(Colors.transparent),
-              /*shape:
-                  MaterialStateProperty.resolveWith<OutlinedBorder?>((states) {
-                if (states.contains(MaterialState.hovered)) {
-                  return const StadiumBorder(
-                    side: BorderSide(
-                      color: Colors.white,
-                    ),
-                  );
-                }
-                return const StadiumBorder(
-                  side: BorderSide(
-                      //color: _colorTween.evaluate(_theAnimationController)!,
-                      ),
-                );
-              }),*/
               shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
-              /*mouseCursor:
-                  const MaterialStatePropertyAll(SystemMouseCursors.click),*/
-              //minimumSize: const MaterialStatePropertyAll(Size(80, 36)),
               elevation: const MaterialStatePropertyAll(0),
-              /*padding: const MaterialStatePropertyAll(
-                EdgeInsets.symmetric(horizontal: 1, vertical: 1),
-              ),*/
-              //maximumSize: const MaterialStatePropertyAll(Size(16, 16)),
-              /*fixedSize: const MaterialStatePropertyAll(
-                Size(20, 20),
-              ),*/
             ),
           );
         },
@@ -162,10 +131,6 @@ class _MaximizeButtonState extends State<MaximizeButton>
     _isMaximized.value = false;
   }
 
-  /*Future<void> _windowManagerListener() async {
-
-  }*/
-
   final Tween<AlignmentGeometry> _alignmentTween = Tween<AlignmentGeometry>(
     begin: Alignment.center,
     end: Alignment.topRight,
@@ -212,8 +177,6 @@ class _MaximizeButtonState extends State<MaximizeButton>
                   return Colors.white54;
                 }
               }),
-              /*backgroundColor:
-                  const MaterialStatePropertyAll(Colors.transparent),*/
               backgroundColor:
                   MaterialStateProperty.resolveWith<Color>((states) {
                 if (states.contains(MaterialState.hovered)) {
@@ -224,24 +187,6 @@ class _MaximizeButtonState extends State<MaximizeButton>
               }),
               overlayColor: const MaterialStatePropertyAll(Colors.transparent),
               shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
-              /*shape:
-                  MaterialStateProperty.resolveWith<OutlinedBorder?>((states) {
-                if (states.contains(MaterialState.hovered)) {
-                  return const StadiumBorder(
-                    side: BorderSide(
-                      color: Colors.white,
-                    ),
-                  );
-                }
-                return const StadiumBorder(
-                  side: BorderSide(
-                      //color: _colorTween.evaluate(_theAnimationController)!,
-                      ),
-                );
-              }),*/
-              /*mouseCursor:
-                  const MaterialStatePropertyAll(SystemMouseCursors.click),*/
-              //minimumSize: const MaterialStatePropertyAll(Size(80, 36)),
               elevation: const MaterialStatePropertyAll(0),
             ),
           );
@@ -349,8 +294,6 @@ class _MinimizeButtonState extends State<MinimizeButton>
                   return Colors.white54;
                 }
               }),
-              /*backgroundColor:
-                  const MaterialStatePropertyAll(Colors.transparent),*/
               backgroundColor:
                   MaterialStateProperty.resolveWith<Color>((states) {
                 if (states.contains(MaterialState.hovered)) {
@@ -361,24 +304,6 @@ class _MinimizeButtonState extends State<MinimizeButton>
               }),
               overlayColor: const MaterialStatePropertyAll(Colors.transparent),
               shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
-              /*shape:
-                  MaterialStateProperty.resolveWith<OutlinedBorder?>((states) {
-                if (states.contains(MaterialState.hovered)) {
-                  return const StadiumBorder(
-                    side: BorderSide(
-                      color: Colors.white,
-                    ),
-                  );
-                }
-                return const StadiumBorder(
-                  side: BorderSide(
-                      //color: _colorTween.evaluate(_theAnimationController)!,
-                      ),
-                );
-              }),*/
-              /*mouseCursor:
-                  const MaterialStatePropertyAll(SystemMouseCursors.click),*/
-              //minimumSize: const MaterialStatePropertyAll(Size(80, 36)),
               elevation: const MaterialStatePropertyAll(0),
             ),
           );

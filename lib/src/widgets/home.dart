@@ -87,7 +87,9 @@ class _PickFileState extends State<PickFile> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      _favouredButtonKey.currentState?.startBlinking();
+      Timer(timeStamp + DesktopFrame.initialAnimationDuration, () {
+        _favouredButtonKey.currentState?.startBlinking();
+      });
     });
   }
 
@@ -142,6 +144,22 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   final _CountsCache _countsCache = _CountsCache.zero();
 
   final List<CancelableOperation<dynamic>> _pendingOperations = [];
+  CancelableOperation<dynamic> _addToOperations(Future Function() operation) {
+    final CancelableOperation<dynamic> cancellableOperation =
+        CancelableOperation<dynamic>.fromFuture(operation());
+    _pendingOperations.add(cancellableOperation);
+
+    cancellableOperation.valueOrCancellation("Cancelled").then((value) {
+      if (value == "Cancelled") {
+        logExceptRelease("Operation is cancelled, removing from pending");
+      } else {
+        logExceptRelease("Operation is completed, removing from pending");
+        _pendingOperations.remove(cancellableOperation);
+      }
+    });
+
+    return cancellableOperation;
+  }
 
   @override
   void initState() {
@@ -179,13 +197,14 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           );
           // Counts
           _countsCache.total = dependencies.length;
-          _setCountsCache(
+          _countsCache.setCountsCache(
             dependencies: dependencies,
           );
 
           return RxList<UpdateInformation>(dependencies);
         },
         generateOnInit: false,
+        allowModification: true,
       ),
       tag: _updatesTag,
     );
@@ -230,7 +249,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   void _generate() {
-    _addToPendingOperations(() async {
+    _addToOperations(() async {
       operationContinue = true;
       //await _dependencies.generate();
       await _updates.generate();
@@ -253,12 +272,12 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
 
     logExceptRelease("Got update values");
     // Generate counts cache
-    _setCountsCache(
+    _countsCache.setCountsCache(
       //refresh: true,
       dependencies: result,
     );
     logExceptRelease("Setting updates");
-    _updates.data!.replaceAll(result);
+    _updates.data = RxList<UpdateInformation>(result);
     hideStatusMessage(_workStatusMessage);
     return true;
   }
@@ -289,38 +308,15 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     final List<UpdateInformation> updatedDependencies =
         dependencies.map<UpdateInformation>((e) => e.updatedVersion()).toList();
 
-    _setCountsCache(
+    _countsCache.setCountsCache(
       //refresh: true,
       dependencies: updatedDependencies,
     );
 
-    _updates.data!.replaceAll(updatedDependencies);
-    // Update Counts Cache
+    _updates.data = RxList<UpdateInformation>(updatedDependencies);
   }
 
-  CancelableOperation<dynamic> _addToPendingOperations(
-    Future Function() operation,
-  ) {
-    final CancelableOperation<dynamic> cancellableOperation =
-        CancelableOperation<dynamic>.fromFuture(operation());
-    _pendingOperations.add(cancellableOperation);
-
-    cancellableOperation.valueOrCancellation("Cancelled").then((value) {
-      if (value == "Cancelled") {
-        logExceptRelease("Operation is cancelled, removing from pending");
-      } else {
-        logExceptRelease("Operation is completed, removing from pending");
-        _pendingOperations.remove(cancellableOperation);
-      }
-    });
-
-    return cancellableOperation;
-  }
-
-  void _setUpdateTo(
-    int index,
-    ReleaseChannel updateTo,
-  ) {
+  void _setUpdateTo(int index, ReleaseChannel updateTo) {
     if (_updates.data == null) {
       return;
     }
@@ -332,7 +328,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     );
 
     // count cache
-    _modifyCountCacheForSingleChannelChange(
+    _countsCache.modifyCountCacheForSingleChannelChange(
       oldDependency: updateInformation,
       newDependency: newUpdateInformation,
     );
@@ -353,177 +349,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         .toList();
 
     // counts cache
-    _setCountsCache(
-      //refresh: true,
-      dependencies: updatedList,
-    );
+    _countsCache.setCountsCache(dependencies: updatedList);
 
-    _updates.data!.replaceAll(updatedList);
-  }
-
-  // Generates Fresh Count Cache
-  void _setCountsCache({
-    bool refresh = false,
-    List<UpdateInformation>? dependencies,
-  }) {
-    logExceptRelease("Generating counts cache");
-    dependencies ??= _updates.data?.toList();
-
-    _countsCache.clear();
-
-    if (dependencies == null || dependencies.isEmpty) {
-      logExceptRelease("Cannot generate counts cache, no dependencies found.");
-      return;
-    }
-
-    final bool updateDoesNotExist = dependencies.first.stableUpdate == null;
-
-    _countsCache.total = dependencies.length;
-
-    for (final UpdateInformation element in dependencies) {
-      // if individualCounts of current dependency type is null, initialize it with zeros
-      if (_countsCache.individualCounts[element.dependencyType] == null) {
-        _countsCache.individualCounts[element.dependencyType] =
-            _IndividualCountCache.zero();
-      }
-
-      if (element.setToUpdate) {
-        _countsCache.toUpdate = _countsCache.toUpdate! + 1;
-      }
-
-      _countsCache.individualCounts[element.dependencyType]!.total =
-          _countsCache.individualCounts[element.dependencyType]!.total! + 1;
-
-      if (updateDoesNotExist) {
-        continue;
-      }
-
-      final UpdateType updateType = element.updateTypeOfCurrentChannel!;
-
-      // if an unmatch found, increasethe count
-      if (element.updateAvailableForCurrentChannel) {
-        // increase total unmatched
-        _countsCache.unmatched = _countsCache.unmatched! + 1;
-
-        // increase unmatched for the
-        _countsCache.individualCounts[element.dependencyType]!.unmatched =
-            _countsCache.individualCounts[element.dependencyType]!.unmatched! +
-                1;
-      }
-
-      // Depending of the update type, increase corresponding counts
-      switch (updateType) {
-        case UpdateType.noUpdate:
-          break;
-        case UpdateType.update:
-          _countsCache.individualCounts[element.dependencyType]!.updates =
-              _countsCache.individualCounts[element.dependencyType]!.updates! +
-                  1;
-          break;
-        case UpdateType.majorUpdate:
-          _countsCache.individualCounts[element.dependencyType]!.majorUpdates =
-              _countsCache
-                      .individualCounts[element.dependencyType]!.majorUpdates! +
-                  1;
-          break;
-        case UpdateType.unknown:
-          _countsCache.individualCounts[element.dependencyType]!.unknown =
-              _countsCache.individualCounts[element.dependencyType]!.unknown! +
-                  1;
-          break;
-
-        case UpdateType.higher:
-          _countsCache.individualCounts[element.dependencyType]!.higher =
-              _countsCache.individualCounts[element.dependencyType]!.higher! +
-                  1;
-          break;
-      }
-    }
-    logExceptRelease("Counts cache set");
-    _countsCache.print();
-    if (refresh) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {});
-      });
-    }
-  }
-
-  // Modifies
-  void _modifyCountCacheForSingleChannelChange({
-    required UpdateInformation oldDependency,
-    required UpdateInformation newDependency,
-  }) {
-    final UpdateType? oldChannel = oldDependency.updateTypeOfCurrentChannel;
-    final UpdateType? newChannel = newDependency.updateTypeOfCurrentChannel;
-    final dependencyType = oldDependency.dependencyType;
-
-    if (oldChannel == null || newChannel == null) {
-      return;
-    }
-
-    if (newDependency.updateTo == ReleaseChannel.none) {
-      // new dependency is just a false to update, decrease by 1
-      _modifyChannelCountOfType(
-        updateType: oldChannel,
-        dependencyType: dependencyType,
-        by: -1,
-      );
-    } else {
-      // new dependency is true to update
-      if (oldDependency.updateTo == ReleaseChannel.none) {
-        // if old dependency WAS a false to update, increase by 1
-        _modifyChannelCountOfType(
-          updateType: newChannel,
-          dependencyType: dependencyType,
-          by: 1,
-        );
-      } else {
-        // if old dependency was true to update, decrease the old by 1
-        _modifyChannelCountOfType(
-          updateType: oldChannel,
-          dependencyType: dependencyType,
-          by: -1,
-        );
-      }
-    }
-  }
-
-  void _modifyChannelCountOfType({
-    required UpdateType updateType,
-    required DependencyType dependencyType,
-    required int by,
-  }) {
-    _countsCache.toUpdate = _countsCache.toUpdate! + by;
-    if (_countsCache.individualCounts[dependencyType] == null) {
-      _countsCache.individualCounts[dependencyType] =
-          _IndividualCountCache.zero();
-    }
-    _countsCache.individualCounts[dependencyType]!.toUpdate =
-        _countsCache.individualCounts[dependencyType]!.toUpdate! + 1;
-    /*switch (updateType) {
-      case UpdateType.noUpdate:
-        /*_countsCache.individualCounts[dependencyType]!.updates =
-              _countsCache.individualCounts[dependencyType]!.updates! + by;*/
-        break;
-      case UpdateType.update:
-        _countsCache.individualCounts[dependencyType]!.updates =
-            _countsCache.individualCounts[dependencyType]!.updates! + by;
-        break;
-      case UpdateType.majorUpdate:
-        _countsCache.individualCounts[dependencyType]!.majorUpdates =
-            _countsCache.individualCounts[dependencyType]!.majorUpdates! + by;
-        break;
-      case UpdateType.higher:
-        _countsCache.individualCounts[dependencyType]!.higher =
-            _countsCache.individualCounts[dependencyType]!.higher! + by;
-        break;
-      case UpdateType.unknown:
-        _countsCache.individualCounts[dependencyType]!.unknown =
-            _countsCache.individualCounts[dependencyType]!.unknown! + by;
-        break;
-    }*/
-    logExceptRelease("CountsCache Modified by $by");
-    _countsCache.print();
+    _updates.data = RxList<UpdateInformation>(updatedList);
   }
 
   // UI
@@ -544,7 +372,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
 
   @override
   Widget build(BuildContext context) {
-    logExceptRelease("Build is running");
+    logExceptRelease("_DependencyReviewerState Build is running");
     final Color primaryColor = Theme.of(context).primaryColor;
     final Color headerTextColor =
         primaryColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
@@ -581,7 +409,10 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
               isShown: statusMessage != null,
               showCurve: Curves.easeIn,
               hideCurve: Curves.easeOut,
-              child: Text(statusMessage ?? ''),
+              child: Text(
+                statusMessage ?? '',
+                textScaleFactor: 0.8,
+              ),
               transitionBuilder: (context, animation, child) => FadeTransition(
                 opacity: animation,
                 child: SizeTransition(
@@ -804,8 +635,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                       ? null
                                       : Text(
                                           subtitleElements.join(", "),
-                                          style:
-                                              TextStyle(color: headerTextColor),
+                                          style: TextStyle(
+                                            color: headerTextColor,
+                                          ),
                                           textScaleFactor: 0.8,
                                         ),
                                 );
@@ -815,6 +647,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                           ),
                           indexedItemBuilder:
                               (context, updateInformation, index) {
+                            // ignore: avoid_dynamic_calls
                             return Obx(
                               () {
                                 logExceptRelease("Building item: $index");
@@ -919,6 +752,135 @@ class _CountsCache {
 
   void print() {
     logExceptRelease(toString());
+  }
+
+  // Generates Fresh Count Cache
+  void setCountsCache({required List<UpdateInformation>? dependencies}) {
+    logExceptRelease("Generating counts cache");
+    //dependencies ??= _updates.data?.toList();
+
+    clear();
+
+    if (dependencies == null || dependencies.isEmpty) {
+      logExceptRelease("Cannot generate counts cache, no dependencies found.");
+      return;
+    }
+
+    final bool updateDoesNotExist = dependencies.first.stableUpdate == null;
+
+    total = dependencies.length;
+
+    for (final UpdateInformation element in dependencies) {
+      // if individualCounts of current dependency type is null, initialize it with zeros
+      if (individualCounts[element.dependencyType] == null) {
+        individualCounts[element.dependencyType] = _IndividualCountCache.zero();
+      }
+
+      individualCounts[element.dependencyType]!.total =
+          individualCounts[element.dependencyType]!.total! + 1;
+
+      if (element.setToUpdate) {
+        toUpdate = toUpdate! + 1;
+        individualCounts[element.dependencyType]!.toUpdate =
+            individualCounts[element.dependencyType]!.toUpdate! + 1;
+      }
+
+      if (updateDoesNotExist) {
+        continue;
+      }
+
+      final UpdateType updateType = element.updateTypeOfCurrentChannel!;
+
+      // if an unmatch found, increasethe count
+      if (element.updateAvailableForCurrentChannel) {
+        // increase total unmatched
+        unmatched = unmatched! + 1;
+
+        // increase unmatched for the
+        individualCounts[element.dependencyType]!.unmatched =
+            individualCounts[element.dependencyType]!.unmatched! + 1;
+      }
+
+      // Depending of the update type, increase corresponding counts
+      switch (updateType) {
+        case UpdateType.noUpdate:
+          break;
+        case UpdateType.update:
+          individualCounts[element.dependencyType]!.updates =
+              individualCounts[element.dependencyType]!.updates! + 1;
+          break;
+        case UpdateType.majorUpdate:
+          individualCounts[element.dependencyType]!.majorUpdates =
+              individualCounts[element.dependencyType]!.majorUpdates! + 1;
+          break;
+        case UpdateType.unknown:
+          individualCounts[element.dependencyType]!.unknown =
+              individualCounts[element.dependencyType]!.unknown! + 1;
+          break;
+
+        case UpdateType.higher:
+          individualCounts[element.dependencyType]!.higher =
+              individualCounts[element.dependencyType]!.higher! + 1;
+          break;
+      }
+    }
+    logExceptRelease("Counts cache set");
+    print();
+  }
+
+  // Modifies
+  void modifyCountCacheForSingleChannelChange({
+    required UpdateInformation oldDependency,
+    required UpdateInformation newDependency,
+  }) {
+    final UpdateType? oldChannel = oldDependency.updateTypeOfCurrentChannel;
+    final UpdateType? newChannel = newDependency.updateTypeOfCurrentChannel;
+    final dependencyType = oldDependency.dependencyType;
+
+    if (oldChannel == null || newChannel == null) {
+      return;
+    }
+
+    if (newDependency.updateTo == ReleaseChannel.none) {
+      // new dependency is just a false to update, decrease by 1
+      _modifyChannelCountOfType(
+        updateType: oldChannel,
+        dependencyType: dependencyType,
+        by: -1,
+      );
+    } else {
+      // new dependency is true to update
+      if (oldDependency.updateTo == ReleaseChannel.none) {
+        // if old dependency WAS a false to update, increase by 1
+        _modifyChannelCountOfType(
+          updateType: newChannel,
+          dependencyType: dependencyType,
+          by: 1,
+        );
+      } else {
+        // if old dependency was true to update, decrease the old by 1
+        _modifyChannelCountOfType(
+          updateType: oldChannel,
+          dependencyType: dependencyType,
+          by: -1,
+        );
+      }
+    }
+  }
+
+  void _modifyChannelCountOfType({
+    required UpdateType updateType,
+    required DependencyType dependencyType,
+    required int by,
+  }) {
+    toUpdate = toUpdate! + by;
+    if (individualCounts[dependencyType] == null) {
+      individualCounts[dependencyType] = _IndividualCountCache.zero();
+    }
+    individualCounts[dependencyType]!.toUpdate =
+        individualCounts[dependencyType]!.toUpdate! + 1;
+    logExceptRelease("CountsCache Modified by $by");
+    print();
   }
 }
 

@@ -41,6 +41,10 @@ class DesktopFrame extends StatefulWidget {
 
   @override
   State<DesktopFrame> createState() => _DesktopFrameState();
+
+  static const Duration initialAnimationDuration = Duration(
+    seconds: 3,
+  );
 }
 
 class _DesktopFrameState extends State<DesktopFrame>
@@ -133,9 +137,7 @@ class _DesktopFrameState extends State<DesktopFrame>
     _initialAnimationController
         .animateTo(
       1,
-      duration: const Duration(
-        seconds: 3,
-      ),
+      duration: DesktopFrame.initialAnimationDuration,
     )
         .then((value) {
       _initialized.value = true;
@@ -301,8 +303,14 @@ class _DesktopFrameState extends State<DesktopFrame>
   Widget build(BuildContext context) {
     final Widget appContent = _Frame(
       titleBarHeight: 18,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(Consts.appBorderRadius),
+      child: PhysicalShape(
+        clipper: ShapeBorderClipper(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(Consts.appBorderRadius),
+          ),
+        ),
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        color: Colors.transparent,
         child: widget.child,
       ),
     );
@@ -472,7 +480,7 @@ class _FrameState extends State<_Frame>
           //top: 3,
           left: 3,
           right: 3,
-          bottom: 4,
+          bottom: 3,
         );
     final double titleBarHeight = widget.titleBarHeight ?? 16;
 

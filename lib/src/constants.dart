@@ -8,58 +8,17 @@ abstract class Consts {
 
 abstract class AppThemes {
   static final ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.light,
-    extensions: const [
-      PUCAppBarThemeData(
-        backgroundColor: Colors.white,
-      ),
-    ],
+    extensions: const [],
   );
 
   static final ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: Colors.white30.withOpacity(0.1),
+    scaffoldBackgroundColor: Colors.white12.withOpacity(0.1),
     //scaffoldBackgroundColor: const Color.fromARGB(255, 31, 30, 44),
     //backgroundColor: const Color.fromARGB(255, 31, 30, 44),
-    extensions: const [
-      PUCAppBarThemeData(
-        backgroundColor: Color.fromARGB(255, 22, 22, 28),
-      ),
-    ],
+    extensions: const [],
   );
-}
-
-class PUCAppBarThemeData extends ThemeExtension<PUCAppBarThemeData> {
-  final Color backgroundColor;
-  final Color? foregroundColor;
-
-  const PUCAppBarThemeData({
-    required this.backgroundColor,
-    this.foregroundColor,
-  });
-
-  @override
-  ThemeExtension<PUCAppBarThemeData> lerp(
-    ThemeExtension<PUCAppBarThemeData>? other,
-    double t,
-  ) {
-    if (other is! PUCAppBarThemeData) {
-      return this;
-    }
-    return PUCAppBarThemeData(
-      backgroundColor: Color.lerp(backgroundColor, other.backgroundColor, t)!,
-      foregroundColor: Color.lerp(backgroundColor, other.backgroundColor, t),
-    );
-  }
-
-  @override
-  PUCAppBarThemeData copyWith({
-    Color? backgroundColor,
-    Color? foregroundColor,
-  }) {
-    return PUCAppBarThemeData(
-      backgroundColor: backgroundColor ?? this.backgroundColor,
-      foregroundColor: foregroundColor ?? this.foregroundColor,
-    );
-  }
 }
