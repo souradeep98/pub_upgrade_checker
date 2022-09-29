@@ -25,11 +25,38 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    //final ThemeData theme = Theme.of(context);
     return SafeArea(
       child: ValueListenableBuilder<File?>(
         valueListenable: _selectedFile,
         builder: (context, file, pickFile) {
-          if (file == null) {
+          return PageTransitionSwitcher(
+            duration: const Duration(seconds: 1),
+            reverse: file == null,
+            transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
+              /*logExceptRelease(
+                "PrimaryAnimation: ${primaryAnimation.value}\nSecondaryAnimation: ${secondaryAnimation.value}",
+              );*/
+              return SharedAxisTransition(
+                animation: primaryAnimation,
+                secondaryAnimation: secondaryAnimation,
+                transitionType: SharedAxisTransitionType.horizontal,
+                child: child,
+              );
+            },
+            child: file == null
+                ? pickFile
+                : DependencyReviewer(
+                    file: file,
+                    onCloseFile: () {
+                      _selectedFile.value = null;
+                    },
+                    onPickAnotherFile: (x) {
+                      _selectedFile.value = x;
+                    },
+                  ),
+          );
+          /*if (file == null) {
             return pickFile!;
           }
           return DependencyReviewer(
@@ -40,7 +67,7 @@ class _HomeState extends State<Home> {
             onPickAnotherFile: (x) {
               _selectedFile.value = x;
             },
-          );
+          );*/
         },
         child: PickFile(
           onPick: (x) {
@@ -176,7 +203,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   @override
   void didUpdateWidget(covariant DependencyReviewer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.file != widget.file) {
+    if (oldWidget.file.path != widget.file.path) {
       _disposeControllers(initiate: true);
     }
   }
@@ -196,7 +223,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
             wsmDepth: WSMDepth.medium,
           );
           // Counts
-          _countsCache.total = dependencies.length;
+          //_countsCache.total = dependencies.length;
           _countsCache.setCountsCache(
             dependencies: dependencies,
           );
@@ -570,6 +597,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                       });
 
                       return Card(
+                        clipBehavior: Clip.antiAliasWithSaveLayer,
                         child:
                             GroupedListView<UpdateInformation, DependencyType>(
                           sort: false,

@@ -302,6 +302,12 @@ class _DesktopFrameState extends State<DesktopFrame>
   @override
   Widget build(BuildContext context) {
     final Widget appContent = _Frame(
+      edges: const EdgeInsets.only(
+        top: 2,
+        left: 4,
+        right: 4,
+        bottom: 4,
+      ),
       titleBarHeight: 18,
       child: PhysicalShape(
         clipper: ShapeBorderClipper(
@@ -509,6 +515,7 @@ class _FrameState extends State<_Frame>
       ),
       child: Stack(
         children: [
+          // Resize layer
           Column(
             children: [
               // Top
@@ -620,7 +627,7 @@ class _FrameState extends State<_Frame>
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );

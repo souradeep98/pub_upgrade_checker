@@ -63,9 +63,9 @@ class Dependency extends Equatable {
       ((other is UpdateInformation) && isSame(other.current));
 
   bool operator >(Object other) {
+    assert(other is! UpdateInformation);
     assert(isSame(other));
-    return 
-        ((other is Dependency) &&
+    return ((other is Dependency) &&
             (versionConstraint.version > other.versionConstraint.version)) ||
         ((other is VersionConstraint) &&
             (versionConstraint.version > other.version)) ||
@@ -73,6 +73,7 @@ class Dependency extends Equatable {
   }
 
   bool operator <(Object other) {
+    assert(other is! UpdateInformation);
     assert(isSame(other));
     return ((other is Dependency) &&
             (versionConstraint.version < other.versionConstraint.version)) ||
@@ -82,6 +83,7 @@ class Dependency extends Equatable {
   }
 
   bool operator >=(Object other) {
+    assert(other is! UpdateInformation);
     assert(isSame(other));
     return ((other is Dependency) &&
             (versionConstraint.version >= other.versionConstraint.version)) ||
@@ -91,6 +93,7 @@ class Dependency extends Equatable {
   }
 
   bool operator <=(Object other) {
+    assert(other is! UpdateInformation);
     assert(isSame(other));
     return ((other is Dependency) &&
             (versionConstraint.version <= other.versionConstraint.version)) ||
@@ -99,10 +102,12 @@ class Dependency extends Equatable {
         ((other is Version) && versionConstraint.version <= other);
   }
 
-  bool allows(Object? other) =>
-      ((other is Dependency) &&
+  bool allows(Object? other) {
+    assert(other is! UpdateInformation);
+    return ((other is Dependency) &&
           isSame(other) &&
           versionConstraint.allowsAny(other.versionConstraint)) ||
       ((other is VersionConstraint) && versionConstraint.allowsAny(other)) ||
       ((other is Version) && versionConstraint.allows(other));
+  }
 }

@@ -196,7 +196,7 @@ Future<List<UpdateInformation>> getDependencies(
   checkOperation();
 
   final Map dependenciesMap =
-      (contentAsJson[DependencyType.dependency.pubspecName] as Map)
+      (contentAsJson[DependencyType.dependency.pubspecName] as Map? ?? {})
           .cast<String, dynamic>()
           .filterOutWhere((key, value) {
     final bool exclude = (key == "flutter") || (value is! String);
@@ -214,7 +214,7 @@ Future<List<UpdateInformation>> getDependencies(
   checkOperation();
 
   final Map devDependenciesMap =
-      (contentAsJson[DependencyType.devDependency.pubspecName] as Map)
+      (contentAsJson[DependencyType.devDependency.pubspecName] as Map? ?? {})
           .cast<String, dynamic>()
           .filterOutWhere(
     (key, value) {
@@ -532,7 +532,10 @@ Future<List<UpdateInformation>> getUpdates(
       x.copyWith(
         stableUpdate: stableUpdate,
         prereleaseUpdate: prereleaseUpdate,
-        updateTo: stableUpdate > x ? ReleaseChannel.stable : null,
+        updateTo:
+            ((stableUpdate > x.current) && (stableUpdate.allows(x.current)))
+                ? ReleaseChannel.stable
+                : null,
       ),
     );
 
