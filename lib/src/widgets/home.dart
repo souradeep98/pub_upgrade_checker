@@ -497,9 +497,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         Obx(
           () {
             final bool gotItems = !_updates.hasNoData;
-            logExceptRelease(
+            /*logExceptRelease(
               "Building update all, gotItems: $gotItems, unmatched: ${_countsCache.unmatched} ===============================================================",
-            );
+            );*/
             final int total = _countsCache.unmatched ?? 0;
 
             final int toUpdate = _countsCache.toUpdate ?? 0;
@@ -678,7 +678,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                             // ignore: avoid_dynamic_calls
                             return Obx(
                               () {
-                                logExceptRelease("Building item: $index");
+                                //logExceptRelease("Building item: $index");
                                 _updates.data; // Very important task
                                 return Tooltip(
                                   waitDuration: const Duration(seconds: 1),
@@ -737,7 +737,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
             final FeedbackCallback? onPressed =
                 (_countsCache.toUpdate ?? 0) <= 0 ? null : _update;
 
-            logExceptRelease("Update onPressed: $onPressed");
+            //logExceptRelease("Update onPressed: $onPressed");
             return Padding(
               padding: const EdgeInsets.all(10),
               child: LoadingElevatedButton(
