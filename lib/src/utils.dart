@@ -503,13 +503,13 @@ Future<List<UpdateInformation>> getUpdates(
     final html.Element? metadataElement =
         htmlDoc.querySelector(metadataSelector);
 
-    try {
+    /*try {
       logExceptRelease(
         "Prerelease Data: ${metadataElement?.nodes.lastWhere(
               (element) => element.text?.contains("Prerelease: ") ?? false,
             ).text}",
       );
-    } catch (_) {}
+    } catch (_) {}*/
 
     if (stableVersionElement == null) {
       logExceptRelease(
@@ -523,27 +523,28 @@ Future<List<UpdateInformation>> getUpdates(
 
     final Dependency stableUpdate =
         Dependency.fromConstraintString(stableVersionElement.innerHtml);
-    logExceptRelease("Pub: $stableUpdate");
+    logExceptRelease("Pub Stable: $stableUpdate");
 
     final Dependency? prereleaseUpdate =
         Dependency.maybeFromMetaDataHTMLElement(metadataElement);
+    logExceptRelease("Pub Prerelease: $prereleaseUpdate");
 
-    results.add(
-      x.copyWith(
-        stableUpdate: stableUpdate,
-        prereleaseUpdate: prereleaseUpdate,
-        updateTo:
-            ((stableUpdate > x.current) && (stableUpdate.allows(x.current)))
-                ? ReleaseChannel.stable
-                : null,
-      ),
+    UpdateInformation updateInformationWithUpdates = x.copyWith(
+      stableUpdate: stableUpdate,
+      prereleaseUpdate: prereleaseUpdate,
     );
 
-    final bool stableUpdateFound = stableUpdate > x.current;
+    updateInformationWithUpdates = updateInformationWithUpdates.copyWith(
+      updateTo: updateInformationWithUpdates.currentChannel,
+    );
+
+    results.add(updateInformationWithUpdates);
+
+    /*final bool stableUpdateFound = stableUpdate > x.current;
 
     logExceptRelease(
       stableUpdateFound ? "Stable Update available!" : "Latest Stable!",
-    );
+    );*/
 
     /*if (stableUpdateFound) {
         setStatus(

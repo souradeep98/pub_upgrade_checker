@@ -44,7 +44,37 @@ class Dependency extends Equatable {
     if (element == null) {
       return null;
     }
-    return null;
+    //logExceptRelease("Metadata element: ${element.innerHtml}");
+    final int prereleaseIndex = element.innerHtml.indexOf("Prerelease:");
+    if (prereleaseIndex == -1) {
+      return null;
+    }
+    final String prereleaseSubstring =
+        element.innerHtml.substring(prereleaseIndex);
+
+    //logExceptRelease(prereleaseSubstring);
+
+    final int prereleaseRefStartIndex = prereleaseSubstring.indexOf('"');
+    final int prereleaseRefEndIndex = prereleaseSubstring.indexOf(
+      '"',
+      prereleaseRefStartIndex + 1,
+    );
+
+    final String prereleaseRefSubstring = prereleaseSubstring.substring(
+      prereleaseRefStartIndex + 1,
+      prereleaseRefEndIndex,
+    );
+
+    //logExceptRelease("A: $prereleaseRefSubstring");
+
+    final List<String> elements = prereleaseRefSubstring.split("/");
+
+    logExceptRelease("${elements[2]}: ^${elements[4]}");
+
+    return Dependency(
+      name: elements[2],
+      versionConstraint: VersionConstraint.parse("^${elements[4]}"),
+    );
   }
 
   @override
@@ -105,9 +135,9 @@ class Dependency extends Equatable {
   bool allows(Object? other) {
     assert(other is! UpdateInformation);
     return ((other is Dependency) &&
-          isSame(other) &&
-          versionConstraint.allowsAny(other.versionConstraint)) ||
-      ((other is VersionConstraint) && versionConstraint.allowsAny(other)) ||
-      ((other is Version) && versionConstraint.allows(other));
+            isSame(other) &&
+            versionConstraint.allowsAny(other.versionConstraint)) ||
+        ((other is VersionConstraint) && versionConstraint.allowsAny(other)) ||
+        ((other is Version) && versionConstraint.allows(other));
   }
 }

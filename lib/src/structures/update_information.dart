@@ -78,7 +78,7 @@ class UpdateInformation extends Equatable {
       return "";
     }
     return prereleaseUpdate != null
-        ? "${stableUpdateType.displayName}: ${stableUpdate!.versionConstraint}, prerelease: ${prereleaseUpdate!.versionConstraint}"
+        ? "Stable: ${stableUpdate!.versionConstraint}, prerelease (${prereleaseUpdateType.displayName}): ${prereleaseUpdate!.versionConstraint}"
         : "${stableUpdateType.displayName}: ${stableUpdate!.versionConstraint}";
   }
 

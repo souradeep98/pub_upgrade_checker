@@ -161,9 +161,9 @@ class DependencyReviewer extends StatefulWidget {
 }
 
 class _DependencyReviewerState extends State<DependencyReviewer> {
-  static const String _updatesTag = "updates";
+  static const String _dependenciesTag = "dependencies";
 
-  late SingleGenerateObservable<RxList<UpdateInformation>> _updates;
+  late SingleGenerateObservable<RxList<UpdateInformation>> _dependencies;
   ValueNotifier<String?>? _workStatusMessage;
   ValueNotifier<bool>? _showDifferencesOnly;
   TextEditingController? _textEditingController;
@@ -214,7 +214,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     _workStatusMessage = ValueNotifier<String?>(null);
     _shownItems = ValueNotifier<int?>(null);
 
-    _updates = Get.put<SingleGenerateObservable<RxList<UpdateInformation>>>(
+    _dependencies = Get.put<SingleGenerateObservable<RxList<UpdateInformation>>>(
       SingleGenerateObservable<RxList<UpdateInformation>>(
         dataGenerator: (data) async {
           final List<UpdateInformation> dependencies = await getDependencies(
@@ -233,7 +233,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         generateOnInit: false,
         allowModification: true,
       ),
-      tag: _updatesTag,
+      tag: _dependenciesTag,
     );
     _generate();
   }
@@ -259,13 +259,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     //_dependencyToTypeMap = null;
     logExceptRelease("Controllers Disposed");
     Future.wait([
-      /*Get.delete<
-          SingleGenerateObservable<RxMap<DependencyType, RxList<Dependency>>>>(
-        tag: _dependenciesTag,
-      ),*/
       Get.delete<
           SingleGenerateObservable<RxMap<Dependency, UpdateInformation>>>(
-        tag: _updatesTag,
+        tag: _dependenciesTag,
       ),
     ]).then((value) {
       logExceptRelease("GetX controllers Disposed");
@@ -279,7 +275,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     _addToOperations(() async {
       operationContinue = true;
       //await _dependencies.generate();
-      await _updates.generate();
+      await _dependencies.generate();
       await _getUpdates();
       operationContinue = false;
     });
@@ -287,7 +283,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
 
   Future<bool> _getUpdates() async {
     logExceptRelease("Getting updates");
-    final List<UpdateInformation>? dependencies = _updates.data;
+    final List<UpdateInformation>? dependencies = _dependencies.data;
     if (dependencies == null) {
       return false;
     }
@@ -304,13 +300,13 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       dependencies: result,
     );
     logExceptRelease("Setting updates");
-    _updates.data = RxList<UpdateInformation>(result);
+    _dependencies.data = RxList<UpdateInformation>(result);
     hideStatusMessage(_workStatusMessage);
     return true;
   }
 
   Future<bool> _update() async {
-    final List<UpdateInformation>? dependencies = _updates.data?.toList();
+    final List<UpdateInformation>? dependencies = _dependencies.data?.toList();
     if (dependencies == null) {
       return false;
     }
@@ -327,7 +323,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   Future<void> _replaceCurrentDependenciesWithUpdates() async {
-    final List<UpdateInformation>? dependencies = _updates.data?.toList();
+    final List<UpdateInformation>? dependencies = _dependencies.data?.toList();
     if (dependencies == null) {
       return;
     }
@@ -340,15 +336,15 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       dependencies: updatedDependencies,
     );
 
-    _updates.data = RxList<UpdateInformation>(updatedDependencies);
+    _dependencies.data = RxList<UpdateInformation>(updatedDependencies);
   }
 
   void _setUpdateTo(int index, ReleaseChannel updateTo) {
-    if (_updates.data == null) {
+    if (_dependencies.data == null) {
       return;
     }
 
-    final UpdateInformation updateInformation = _updates.data![index];
+    final UpdateInformation updateInformation = _dependencies.data![index];
 
     final UpdateInformation newUpdateInformation = updateInformation.copyWith(
       updateTo: updateTo,
@@ -360,16 +356,16 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
       newDependency: newUpdateInformation,
     );
 
-    _updates.data![index] = newUpdateInformation;
+    _dependencies.data![index] = newUpdateInformation;
   }
 
   //! Update All
   void _setUpdateToAll(bool shouldUpdate) {
-    if (_updates.data == null) {
+    if (_dependencies.data == null) {
       return;
     }
 
-    final List<UpdateInformation> updatedList = _updates.data!
+    final List<UpdateInformation> updatedList = _dependencies.data!
         .map<UpdateInformation>(
           (element) => element.shouldUpdate(shouldUpdate),
         )
@@ -378,7 +374,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     // counts cache
     _countsCache.setCountsCache(dependencies: updatedList);
 
-    _updates.data = RxList<UpdateInformation>(updatedList);
+    _dependencies.data = RxList<UpdateInformation>(updatedList);
   }
 
   // UI
@@ -474,7 +470,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         Obx(
           () {
             final bool notEligible =
-                _updates.data == null || _updates.isLoading;
+                _dependencies.data == null || _dependencies.isLoading;
             return ValueListenableBuilder<bool>(
               valueListenable: _showDifferencesOnly!,
               builder: (context, value, _) {
@@ -496,7 +492,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update all
         Obx(
           () {
-            final bool gotItems = !_updates.hasNoData;
+            final bool gotItems = !_dependencies.hasNoData;
             /*logExceptRelease(
               "Building update all, gotItems: $gotItems, unmatched: ${_countsCache.unmatched} ===============================================================",
             );*/
@@ -540,7 +536,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
             child: Obx(() {
-              if ((_updates.data == null) || (_countsCache.total == null)) {
+              if ((_dependencies.data == null) || (_countsCache.total == null)) {
                 return empty;
               }
               final int total = _countsCache.total!;
@@ -567,7 +563,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                 builder: (context, textEditingValue, _) {
                   return DataGenerateObserver<
                       SingleGenerateObservable<RxList<UpdateInformation>>>(
-                    observable: _updates,
+                    observable: _dependencies,
                     builder: (dependenciesController) {
                       late final List<UpdateInformation> allItems;
                       {
@@ -638,7 +634,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                 final int total = counts.total!;
 
                                 final bool shouldShowCountElements =
-                                    _updates.data != null;
+                                    _dependencies.data != null;
 
                                 final List<String> titleCountElements = [
                                   "Selected: $toUpdate",
@@ -679,7 +675,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                             return Obx(
                               () {
                                 //logExceptRelease("Building item: $index");
-                                _updates.data; // Very important task
+                                _dependencies.data; // Very important task
                                 return Tooltip(
                                   waitDuration: const Duration(seconds: 1),
                                   message: updateInformation
@@ -733,7 +729,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
         //! Update button
         Obx(
           () {
-            _updates.data;
+            _dependencies.data;
             final FeedbackCallback? onPressed =
                 (_countsCache.toUpdate ?? 0) <= 0 ? null : _update;
 
