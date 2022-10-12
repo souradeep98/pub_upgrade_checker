@@ -80,14 +80,13 @@ class _HomeState extends State<Home> {
 }
 
 Future<void> _pickFile(void Function(File) onPick) async {
-  final FilePickerResult? result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ["yaml"],
-  );
-  /*final List<File> x = await pickFiles(
-    allowMultiple: false,
-    allowedExtensions: ["yaml"],
-  );*/
+  final FilePickerResult? result = isSmartPhone
+      ? (await FilePicker.platform.pickFiles())
+      : (await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ["yaml"],
+        ));
+
   if (result == null) {
     return;
   }
@@ -214,7 +213,8 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
     _workStatusMessage = ValueNotifier<String?>(null);
     _shownItems = ValueNotifier<int?>(null);
 
-    _dependencies = Get.put<SingleGenerateObservable<RxList<UpdateInformation>>>(
+    _dependencies =
+        Get.put<SingleGenerateObservable<RxList<UpdateInformation>>>(
       SingleGenerateObservable<RxList<UpdateInformation>>(
         dataGenerator: (data) async {
           final List<UpdateInformation> dependencies = await getDependencies(
@@ -536,7 +536,8 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
             child: Obx(() {
-              if ((_dependencies.data == null) || (_countsCache.total == null)) {
+              if ((_dependencies.data == null) ||
+                  (_countsCache.total == null)) {
                 return empty;
               }
               final int total = _countsCache.total!;
