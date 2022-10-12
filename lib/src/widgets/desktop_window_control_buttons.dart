@@ -110,7 +110,7 @@ class _ControlButtonInternal extends ButtonStyleButton {
           onFocusChange: null,
           onHover: null,
           style: null,
-          child: Icon(iconData, size: 18),
+          child: Icon(iconData, size: 16),
         );
 
   @override
@@ -143,7 +143,7 @@ class _ControlButtonInternal extends ButtonStyleButton {
       surfaceTintColor: const MaterialStatePropertyAll(Colors.transparent),
       shape: const MaterialStatePropertyAll(RoundedRectangleBorder()),
       elevation: const MaterialStatePropertyAll(0),
-      minimumSize: const MaterialStatePropertyAll(Size(30, 20)),
+      minimumSize: const MaterialStatePropertyAll(Size(30, 30)),
       maximumSize: const MaterialStatePropertyAll(Size.infinite),
       padding: const MaterialStatePropertyAll<EdgeInsetsGeometry>(
         EdgeInsets.symmetric(vertical: 5, horizontal: 8),

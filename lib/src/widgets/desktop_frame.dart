@@ -303,12 +303,12 @@ class _DesktopFrameState extends State<DesktopFrame>
   Widget build(BuildContext context) {
     final Widget appContent = _Frame(
       edges: const EdgeInsets.only(
-        top: 2,
+        //top: 2,
         left: 4,
         right: 4,
         bottom: 4,
       ),
-      titleBarHeight: 18,
+      titleBarHeight: 20,
       child: PhysicalShape(
         clipper: ShapeBorderClipper(
           shape: RoundedRectangleBorder(

@@ -3,7 +3,7 @@ library constants;
 import 'package:flutter/material.dart';
 
 abstract class Consts {
-  static const double appBorderRadius = 16;
+  static const double appBorderRadius = 12;
 }
 
 abstract class AppThemes {
