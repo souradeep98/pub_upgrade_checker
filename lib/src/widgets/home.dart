@@ -46,7 +46,7 @@ class _HomeState extends State<Home> {
             },
             child: file == null
                 ? pickFile
-                : DependencyReviewer(
+                : _DependencyReviewer(
                     file: file,
                     onCloseFile: () {
                       _selectedFile.value = null;
@@ -69,7 +69,7 @@ class _HomeState extends State<Home> {
             },
           );*/
         },
-        child: PickFile(
+        child: _PickFile(
           onPick: (x) {
             _selectedFile.value = x;
           },
@@ -90,22 +90,24 @@ Future<void> _pickFile(void Function(File) onPick) async {
   if (result == null) {
     return;
   }
+  logExceptRelease("Picked file: ${result.files.single.path}");
   onPick(File(result.files.single.path!));
 }
 
-class PickFile extends StatefulWidget {
+class _PickFile extends StatefulWidget {
   final void Function(File) onPick;
 
-  const PickFile({
+  const _PickFile({
+    // ignore: unused_element
     super.key,
     required this.onPick,
   });
 
   @override
-  State<PickFile> createState() => _PickFileState();
+  State<_PickFile> createState() => _PickFileState();
 }
 
-class _PickFileState extends State<PickFile> {
+class _PickFileState extends State<_PickFile> {
   final GlobalKey<FavouredButtonState> _favouredButtonKey =
       GlobalKey<FavouredButtonState>();
 
@@ -143,12 +145,13 @@ class _PickFileState extends State<PickFile> {
   }
 }
 
-class DependencyReviewer extends StatefulWidget {
+class _DependencyReviewer extends StatefulWidget {
   final VoidCallback onCloseFile;
   final void Function(File) onPickAnotherFile;
   final File file;
 
-  const DependencyReviewer({
+  const _DependencyReviewer({
+    // ignore: unused_element
     super.key,
     required this.file,
     required this.onCloseFile,
@@ -156,10 +159,10 @@ class DependencyReviewer extends StatefulWidget {
   });
 
   @override
-  State<DependencyReviewer> createState() => _DependencyReviewerState();
+  State<_DependencyReviewer> createState() => _DependencyReviewerState();
 }
 
-class _DependencyReviewerState extends State<DependencyReviewer> {
+class _DependencyReviewerState extends State<_DependencyReviewer> {
   static const String _dependenciesTag = "dependencies";
 
   late SingleGenerateObservable<RxList<UpdateInformation>> _dependencies;
@@ -200,7 +203,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
   }
 
   @override
-  void didUpdateWidget(covariant DependencyReviewer oldWidget) {
+  void didUpdateWidget(covariant _DependencyReviewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.file.path != widget.file.path) {
       _disposeControllers(initiate: true);
@@ -496,9 +499,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
             /*logExceptRelease(
               "Building update all, gotItems: $gotItems, unmatched: ${_countsCache.unmatched} ===============================================================",
             );*/
-            final int total = _countsCache.unmatched ?? 0;
+            final int total = _countsCache.unmatched;
 
-            final int toUpdate = _countsCache.toUpdate ?? 0;
+            final int toUpdate = _countsCache.toUpdate;
 
             final bool ifUpdateAll = (total != 0) && (total == toUpdate);
 
@@ -536,11 +539,10 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
             child: Obx(() {
-              if ((_dependencies.data == null) ||
-                  (_countsCache.total == null)) {
+              if (_dependencies.data == null) {
                 return empty;
               }
-              final int total = _countsCache.total!;
+              final int total = _countsCache.total;
               return ValueListenableBuilder<int?>(
                 valueListenable: _shownItems!,
                 builder: (context, shownItems, _) {
@@ -613,11 +615,11 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                     _countsCache
                                             .individualCounts[dependencyType] ??
                                         _IndividualCountCache.zero();
-                                final int stableUpdates = counts.updates!;
+                                final int stableUpdates = counts.updates;
                                 final int majorStableUpdates =
-                                    counts.majorUpdates!;
-                                final int higherStable = counts.higher!;
-                                final int unknownStable = counts.unknown!;
+                                    counts.majorUpdates;
+                                final int higherStable = counts.higher;
+                                final int unknownStable = counts.unknown;
 
                                 final List<String> subtitleElements = [
                                   if (stableUpdates > 0)
@@ -630,9 +632,9 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
                                 ];
 
                                 // Title elements
-                                final int toUpdate = counts.toUpdate!;
-                                final int unmatched = counts.unmatched!;
-                                final int total = counts.total!;
+                                final int toUpdate = counts.toUpdate;
+                                final int unmatched = counts.unmatched;
+                                final int total = counts.total;
 
                                 final bool shouldShowCountElements =
                                     _dependencies.data != null;
@@ -732,7 +734,7 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
           () {
             _dependencies.data;
             final FeedbackCallback? onPressed =
-                (_countsCache.toUpdate ?? 0) <= 0 ? null : _update;
+                (_countsCache.toUpdate) <= 0 ? null : _update;
 
             //logExceptRelease("Update onPressed: $onPressed");
             return Padding(
@@ -750,30 +752,37 @@ class _DependencyReviewerState extends State<DependencyReviewer> {
 }
 
 class _CountsCache {
-  int? total;
-  int? unmatched;
-  int? toUpdate;
+  int _total;
+  int _unmatched;
+  int _toUpdate;
   final Map<DependencyType, _IndividualCountCache> individualCounts = {};
+
+  int get total => _total;
+  int get unmatched => _unmatched;
+  int get toUpdate => _toUpdate;
 
   _CountsCache.zero({
     // ignore: unused_element
-    this.total = 0,
+    int total = 0,
     // ignore: unused_element
-    this.unmatched = 0,
+    int unmatched = 0,
     // ignore: unused_element
-    this.toUpdate = 0,
-  });
+    int toUpdate = 0,
+  })  : _total = total,
+        _unmatched = unmatched,
+        _toUpdate = toUpdate;
 
   void clear() {
-    unmatched = 0;
-    total = 0;
-    toUpdate = 0;
+    logExceptRelease("Clearing counts cache");
+    _unmatched = 0;
+    _total = 0;
+    _toUpdate = 0;
     individualCounts.clear();
   }
 
   @override
   String toString() =>
-      'CountsCache(\n\ttotal: $total,\n\tunmatched: $unmatched,\n\ttoUpdate: $toUpdate\n\tindividualCounts: ${printMap(individualCounts)}\n)';
+      'CountsCache(\n\ttotal: $_total,\n\tunmatched: $_unmatched,\n\ttoUpdate: $_toUpdate\n\tindividualCounts: ${printMap(individualCounts)}\n)';
 
   void print() {
     logExceptRelease(toString());
@@ -781,19 +790,28 @@ class _CountsCache {
 
   // Generates Fresh Count Cache
   void setCountsCache({required List<UpdateInformation>? dependencies}) {
-    logExceptRelease("Generating counts cache");
     //dependencies ??= _updates.data?.toList();
 
     clear();
 
+    logExceptRelease("Generating counts cache...");
+
     if (dependencies == null || dependencies.isEmpty) {
-      logExceptRelease("Cannot generate counts cache, no dependencies found.");
+      logExceptRelease(
+        "Cannot generate counts cache, no dependencies found. Exiting.",
+      );
       return;
     }
 
     final bool updateDoesNotExist = dependencies.first.stableUpdate == null;
 
-    total = dependencies.length;
+    logExceptRelease("Updates present: ${!updateDoesNotExist}.");
+
+    _total = dependencies.length;
+
+    logExceptRelease("Total dependencies: $_total.");
+
+    logExceptRelease("Iterating through dependencies.");
 
     for (final UpdateInformation element in dependencies) {
       // if individualCounts of current dependency type is null, initialize it with zeros
@@ -801,16 +819,19 @@ class _CountsCache {
         individualCounts[element.dependencyType] = _IndividualCountCache.zero();
       }
 
-      individualCounts[element.dependencyType]!.total =
-          individualCounts[element.dependencyType]!.total! + 1;
+      logExceptRelease("Current element: $element");
+
+      ++individualCounts[element.dependencyType]!._total;
+      logExceptRelease("Incrementing individual counts for dependencyType.");
 
       if (element.setToUpdate) {
-        toUpdate = toUpdate! + 1;
-        individualCounts[element.dependencyType]!.toUpdate =
-            individualCounts[element.dependencyType]!.toUpdate! + 1;
+        logExceptRelease("Incrementing toUpdate.");
+        ++_toUpdate;
+        ++individualCounts[element.dependencyType]!._toUpdate;
       }
 
       if (updateDoesNotExist) {
+        logExceptRelease("Update data does not exist. Exiting...");
         continue;
       }
 
@@ -818,38 +839,40 @@ class _CountsCache {
 
       // if an unmatch found, increasethe count
       if (element.updateAvailableForCurrentChannel) {
+        logExceptRelease(
+          "Incrementing unmatched, as update is available for current channel.",
+        );
         // increase total unmatched
-        unmatched = unmatched! + 1;
+        ++_unmatched;
 
         // increase unmatched for the
-        individualCounts[element.dependencyType]!.unmatched =
-            individualCounts[element.dependencyType]!.unmatched! + 1;
+        ++individualCounts[element.dependencyType]!._unmatched;
       }
+
+      logExceptRelease("Incrementing update type count.");
 
       // Depending of the update type, increase corresponding counts
       switch (updateType) {
         case UpdateType.noUpdate:
           break;
         case UpdateType.update:
-          individualCounts[element.dependencyType]!.updates =
-              individualCounts[element.dependencyType]!.updates! + 1;
+          ++individualCounts[element.dependencyType]!._updates;
           break;
         case UpdateType.majorUpdate:
-          individualCounts[element.dependencyType]!.majorUpdates =
-              individualCounts[element.dependencyType]!.majorUpdates! + 1;
+          ++individualCounts[element.dependencyType]!._majorUpdates;
           break;
         case UpdateType.unknown:
-          individualCounts[element.dependencyType]!.unknown =
-              individualCounts[element.dependencyType]!.unknown! + 1;
+          ++individualCounts[element.dependencyType]!._unknown;
           break;
 
         case UpdateType.higher:
-          individualCounts[element.dependencyType]!.higher =
-              individualCounts[element.dependencyType]!.higher! + 1;
+          ++individualCounts[element.dependencyType]!._higher;
           break;
       }
+
+      logExceptRelease(" ");
     }
-    logExceptRelease("Counts cache set");
+    logExceptRelease("Counts cache set!");
     print();
   }
 
@@ -898,12 +921,11 @@ class _CountsCache {
     required DependencyType dependencyType,
     required int by,
   }) {
-    toUpdate = toUpdate! + by;
+    _toUpdate += by;
     if (individualCounts[dependencyType] == null) {
       individualCounts[dependencyType] = _IndividualCountCache.zero();
     }
-    individualCounts[dependencyType]!.toUpdate =
-        individualCounts[dependencyType]!.toUpdate! + 1;
+    ++individualCounts[dependencyType]!._toUpdate;
     logExceptRelease("CountsCache Modified by $by");
     print();
   }
@@ -924,36 +946,52 @@ String printMap(Map map) {
 }
 
 class _IndividualCountCache {
-  int? updates;
-  int? majorUpdates;
-  int? higher;
-  int? unknown;
-  int? prerelease;
-  int? toUpdate;
-  int? total;
-  int? unmatched;
+  int _updates;
+  int _majorUpdates;
+  int _higher;
+  int _unknown;
+  int _prerelease;
+  int _toUpdate;
+  int _total;
+  int _unmatched;
+
+  int get updates => _updates;
+  int get majorUpdates => _majorUpdates;
+  int get higher => _higher;
+  int get unknown => _unknown;
+  int get prerelease => _prerelease;
+  int get toUpdate => _toUpdate;
+  int get total => _total;
+  int get unmatched => _unmatched;
 
   _IndividualCountCache.zero({
     // ignore: unused_element
-    this.updates = 0,
+    int updates = 0,
     // ignore: unused_element
-    this.majorUpdates = 0,
+    int majorUpdates = 0,
     // ignore: unused_element
-    this.higher = 0,
+    int higher = 0,
     // ignore: unused_element
-    this.unknown = 0,
+    int unknown = 0,
     // ignore: unused_element
-    this.prerelease = 0,
+    int prerelease = 0,
     // ignore: unused_element
-    this.toUpdate = 0,
+    int toUpdate = 0,
     // ignore: unused_element
-    this.total = 0,
+    int total = 0,
     // ignore: unused_element
-    this.unmatched = 0,
-  });
+    int unmatched = 0,
+  })  : _updates = updates,
+        _majorUpdates = majorUpdates,
+        _higher = higher,
+        _unknown = unknown,
+        _prerelease = prerelease,
+        _toUpdate = toUpdate,
+        _total = total,
+        _unmatched = unmatched;
 
   @override
   String toString() {
-    return 'IndividualCountCache(\n\tupdates: $updates,\n\tmajorUpdates: $majorUpdates,\n\thigher: $higher,\n\tunknown: $unknown,\n\tprerelease: $prerelease,\n\ttoUpdate: $toUpdate,\n\ttotal: $total,\n\tunmatched: $unmatched\n)';
+    return 'IndividualCountCache(\n\tupdates: $_updates,\n\tmajorUpdates: $_majorUpdates,\n\thigher: $_higher,\n\tunknown: $_unknown,\n\tprerelease: $_prerelease,\n\ttoUpdate: $_toUpdate,\n\ttotal: $_total,\n\tunmatched: $_unmatched\n)';
   }
 }
