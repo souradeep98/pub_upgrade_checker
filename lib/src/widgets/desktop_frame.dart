@@ -42,9 +42,10 @@ class DesktopFrame extends StatefulWidget {
   @override
   State<DesktopFrame> createState() => _DesktopFrameState();
 
-  static const Duration initialAnimationDuration = Duration(
+  static final Duration initialAnimationDuration = isDesktop ? const Duration(
     seconds: 3,
-  );
+    //seconds: 10,
+  ) : Duration.zero;
 }
 
 class _DesktopFrameState extends State<DesktopFrame>
@@ -271,14 +272,14 @@ class _DesktopFrameState extends State<DesktopFrame>
   static const double _alignAnimationEnd = _logoAnimationEnd + 0.45; //9;
 
   static const double _rotationAnimationStart = _logoAnimationStart; //0
-  static const double _rotationAnimationEnd = _logoAnimationEnd; //0.45
+  static const double _rotationAnimationEnd = _logoAnimationEnd - 0.05; //0.50
 
-  static const double _logoAnimationEnd = 0.45;
+  static const double _logoAnimationEnd = 0.55;
 
   // window reveal animation
-  static const double _revealAnimationStart = 0.45;
+  static const double _revealAnimationStart = _logoAnimationEnd;
 
-  static const double _scaleAndClipAnimationStartOffset = -0.05; //0.40
+  static const double _scaleAndClipAnimationStartOffset = -0.2; //0.15
   static const double _scaleAndClipAnimationEndOffset = -0.4; //0.6
 
   static const double _scaleAnimationStart =

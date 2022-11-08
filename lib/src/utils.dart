@@ -483,16 +483,17 @@ Future<List<UpdateInformation>> getUpdates(
   final int length = dependencies.length;
   for (int i = 0; i < length; ++i) {
     checkOperation();
-    final UpdateInformation x = dependencies[i];
+    final UpdateInformation dependency = dependencies[i];
     setStatus(
       StatusMessage(
-        message: "Checking update for: ${x.name} ($i/$length)",
+        message: "Checking update for: ${dependency.name} ($i/$length)",
         depth: WSMDepth.medium,
       ),
     );
     logExceptRelease("");
-    logExceptRelease("Local: ${x.name}: ${x.current.versionConstraint}");
-    final Uri uri = Uri.parse(pubBaseUrl + x.name);
+    logExceptRelease(
+        "Local: ${dependency.name}: ${dependency.current.versionConstraint}",);
+    final Uri uri = Uri.parse(pubBaseUrl + dependency.name);
     final http.Response response = await http.get(uri);
 
     final html.Document htmlDoc = html.Document.html(response.body);
@@ -513,7 +514,7 @@ Future<List<UpdateInformation>> getUpdates(
 
     if (stableVersionElement == null) {
       logExceptRelease(
-        "Could Not Find Element in html for $x",
+        "Could Not Find Element in html for $dependency",
         error: "Could Not Find Element in html",
       );
       continue;
@@ -529,15 +530,17 @@ Future<List<UpdateInformation>> getUpdates(
         Dependency.maybeFromMetaDataHTMLElement(metadataElement);
     logExceptRelease("Pub Prerelease: $prereleaseUpdate");
 
-    UpdateInformation updateInformationWithUpdates = x.copyWith(
+    UpdateInformation updateInformationWithUpdates = dependency.copyWith(
       stableUpdate: stableUpdate,
       prereleaseUpdate: prereleaseUpdate,
     );
 
-    updateInformationWithUpdates = updateInformationWithUpdates.copyWith(
-      updateTo: updateInformationWithUpdates.currentChannel,
-    );
-
+    if (updateInformationWithUpdates.updateAvailableForCurrentChannel) {
+      updateInformationWithUpdates = updateInformationWithUpdates.copyWith(
+        updateTo: updateInformationWithUpdates.currentChannel,
+      );
+    }
+    
     results.add(updateInformationWithUpdates);
 
     /*final bool stableUpdateFound = stableUpdate > x.current;
