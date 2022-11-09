@@ -8,7 +8,7 @@ class AppFrame extends StatelessWidget {
     Widget content = const Scaffold(body:  Home());
     
     if (isDesktop)  {
-      content = DesktopFrame(child: content);
+      content = DesktopFrame(builder: (context) => const Scaffold(body: Home()),);
     }
     return content;
   }

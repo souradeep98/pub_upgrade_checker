@@ -18,8 +18,8 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+3
 
 environment:
-  sdk: ">=2.18.2 <3.0.0"
-  flutter: ">=3.3.3"
+  sdk: ">=2.18.4 <3.0.0"
+  flutter: ">=3.3.7"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -35,20 +35,21 @@ dependencies:
   # cupertino_icons: ^1.0.5
   yaml: ^3.1.1
   yaml_edit: ^2.0.3
-  html: ^0.15.0
-  pub_semver: ^2.1.1
+  html: ^0.15.1
+  pub_semver: ^2.1.2
   equatable: ^2.0.5
   get: ^4.6.5
   async: ^2.9.0
   #sticky_headers: ^0.3.0+2
   grouped_list: ^5.1.2
   http: ^0.13.5
-  file_picker: ^5.2.0+1
+  file_picker: ^5.2.2
   #bitsdojo_window: ^0.1.5
   #flutter_acrylic: ^1.0.0+2
-  #flutter_staggered_animations: ^1.1.1
-  animations: ^2.0.5
+  flutter_staggered_animations: ^1.1.1
+  animations: ^2.0.7
   window_manager: ^0.2.7
+  logger: ^1.1.0
   flutter_essentials:
     path: ../flutter_essentials
 

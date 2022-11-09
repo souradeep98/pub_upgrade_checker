@@ -1,11 +1,11 @@
 part of widgets;
 
 class DesktopFrame extends StatefulWidget {
-  final Widget child;
+  final WidgetBuilder builder;
 
   const DesktopFrame({
     super.key,
-    required this.child,
+    required this.builder,
   });
 
   static Future<bool> initialize() async {
@@ -42,10 +42,12 @@ class DesktopFrame extends StatefulWidget {
   @override
   State<DesktopFrame> createState() => _DesktopFrameState();
 
-  static final Duration initialAnimationDuration = isDesktop ? const Duration(
-    seconds: 3,
-    //seconds: 10,
-  ) : Duration.zero;
+  static final Duration initialAnimationDuration = isDesktop
+      ? const Duration(
+          seconds: 3,
+          //seconds: 10,
+        )
+      : Duration.zero;
 }
 
 class _DesktopFrameState extends State<DesktopFrame>
@@ -56,11 +58,17 @@ class _DesktopFrameState extends State<DesktopFrame>
   late final AnimationController _windowAnimationController;
   late final ValueNotifier<bool> _initialized;
   //late final ValueNotifier<bool> _isMaximized;
+  late final Future<bool> _animationFuture;
+  late final Completer<bool> _animationCompleter;
 
   @override
   void initState() {
     super.initState();
     windowManager.addListener(this);
+
+    _animationCompleter = Completer<bool>();
+    _animationFuture = _animationCompleter.future;
+
     _initialized = ValueNotifier<bool>(false);
     //_isMaximized = ValueNotifier<bool>(false);
 
@@ -131,6 +139,11 @@ class _DesktopFrameState extends State<DesktopFrame>
     //! Start Animation
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startAnimation();
+      Timer(
+          DesktopFrame.initialAnimationDuration -
+              const Duration(milliseconds: 700), () {
+        _animationCompleter.complete(true);
+      });
     });
   }
 
@@ -318,7 +331,15 @@ class _DesktopFrameState extends State<DesktopFrame>
         ),
         clipBehavior: Clip.antiAliasWithSaveLayer,
         color: Colors.transparent,
-        child: widget.child,
+        child: FutureBuilder<bool>(
+          future: _animationFuture,
+          builder: (context, snapshot) {
+            if (snapshot.hasError || !snapshot.hasData || !snapshot.data!) {
+              return empty;
+            }
+            return widget.builder(context);
+          },
+        ),
       ),
     );
 

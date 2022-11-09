@@ -1,5 +1,7 @@
 library globals;
 
+import 'package:logger/logger.dart';
+
 //import 'package:flutter/widgets.dart';
 
 bool _vOperationContinue = false;
@@ -13,6 +15,8 @@ void checkOperation() {
 set operationContinue(bool value) {
   _vOperationContinue = value;
 }
+
+final Logger logger = Logger();
 
 /*TextDirection? _textDirection;
 

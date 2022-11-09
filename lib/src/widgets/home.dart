@@ -111,34 +111,68 @@ class _PickFileState extends State<_PickFile> {
   final GlobalKey<FavouredButtonState> _favouredButtonKey =
       GlobalKey<FavouredButtonState>();
 
+  static const Duration _staggerDuration = Duration(milliseconds: 750);
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      Timer(timeStamp + DesktopFrame.initialAnimationDuration, () {
+      //_favouredButtonKey.currentState?.startBlinking();
+      Timer(_staggerDuration * 3, () {
         _favouredButtonKey.currentState?.startBlinking();
       });
     });
+  }
+
+  bool _firstElement = true;
+
+  Duration _getDelay() {
+    //logger.d("_getDelay Called");
+    const Duration base = Duration(milliseconds: 120);
+    if (_firstElement) {
+      _firstElement = false;
+      return DesktopFrame.initialAnimationDuration + base;
+    }
+    return base;
   }
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        child: Column(
-          children: [
-            const Text("Pick your pubspec.yaml file"),
-            const SizedBox(
-              height: 30,
-            ),
-            FavouredButton(
-              key: _favouredButtonKey,
-              onPressed: () async {
-                await _pickFile(widget.onPick);
+        child: AnimationLimiter(
+          child: Column(
+            children: AnimationConfiguration.toStaggeredList(
+              duration: _staggerDuration,
+              childAnimationBuilder: (child) {
+                final Duration delay = _getDelay();
+                return SlideAnimation(
+                  delay: delay,
+                  duration: _staggerDuration,
+                  verticalOffset: 10,
+                  child: FadeInAnimation(
+                    duration: _staggerDuration,
+                    delay: delay,
+                    child: child,
+                  ),
+                );
               },
-              text: "Pick",
+              children: [
+                empty,
+                const Text("Pick your pubspec.yaml file"),
+                const SizedBox(
+                  height: 30,
+                ),
+                FavouredButton(
+                  key: _favouredButtonKey,
+                  onPressed: () async {
+                    await _pickFile(widget.onPick);
+                  },
+                  text: "Pick",
+                )
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -380,22 +414,6 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
     _dependencies.data = RxList<UpdateInformation>(updatedList);
   }
 
-  // UI
-  TextStyle? _getTextStyle(UpdateType updateType) {
-    switch (updateType) {
-      case UpdateType.update:
-        return const TextStyle(fontWeight: FontWeight.w700);
-      case UpdateType.majorUpdate:
-        return const TextStyle(fontWeight: FontWeight.w700, color: Colors.red);
-      case UpdateType.unknown:
-        return const TextStyle(color: Colors.red);
-      case UpdateType.noUpdate:
-        return null;
-      case UpdateType.higher:
-        return const TextStyle(fontWeight: FontWeight.w600);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     logExceptRelease("_DependencyReviewerState Build is running");
@@ -404,161 +422,174 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
         primaryColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 
     return Column(
-      children: [
-        //! Opned File
-        Tooltip(
-          message: "Pick another file",
-          child: ListTile(
-            title: const Text("Opened File:"),
-            subtitle: Text(widget.file.path),
-            trailing: Tooltip(
-              message: "Close File",
-              child: IconButton(
-                onPressed: widget.onCloseFile,
-                icon: const Icon(Icons.close),
-              ),
-            ),
-            onTap: () {
-              _pickFile(widget.onPickAnotherFile);
-            },
-          ),
+      children: childrenToStaggeredList(
+        delay: const Duration(milliseconds: 80),
+        duration: const Duration(milliseconds: 350),
+        childAnimationBuilder: (child) => SlideAnimation(
+          verticalOffset: 10,
+          child: FadeInAnimation(child: child),
         ),
-        const Divider(
-          height: 1,
-        ),
-
-        //! Status message
-        ValueListenableBuilder<String?>(
-          valueListenable: _workStatusMessage!,
-          builder: (context, statusMessage, _) {
-            return AnimatedShowHide(
-              isShown: statusMessage != null,
-              showCurve: Curves.easeIn,
-              hideCurve: Curves.easeOut,
-              child: Text(
-                statusMessage ?? '',
-                textScaleFactor: 0.8,
-              ),
-              transitionBuilder: (context, animation, child) => FadeTransition(
-                opacity: animation,
-                child: SizeTransition(
-                  axisAlignment: -1,
-                  sizeFactor: animation,
-                  child: Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          child,
-                        ],
-                      ),
-                      IconButton(
-                        tooltip: "Stop",
-                        onPressed: () {
-                          operationContinue = false;
-                          hideStatusMessage(_workStatusMessage);
-                        },
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
+        expandedFlexFactor: (index) {
+          if (index == 7) {
+            return 1;
+          }
+          return null;
+        },
+        children: [
+          //! Opned File
+          Tooltip(
+            message: "Pick another file",
+            child: ListTile(
+              title: const Text("Opened File:"),
+              subtitle: Text(widget.file.path),
+              trailing: Tooltip(
+                message: "Close File",
+                child: IconButton(
+                  onPressed: widget.onCloseFile,
+                  icon: const Icon(Icons.close),
                 ),
               ),
-            );
-          },
-        ),
-
-        //! Show unmatched only
-        Obx(
-          () {
-            final bool notEligible =
-                _dependencies.data == null || _dependencies.isLoading;
-            return ValueListenableBuilder<bool>(
-              valueListenable: _showDifferencesOnly!,
-              builder: (context, value, _) {
-                return SwitchListTile(
-                  dense: true,
-                  title: const Text("Show unmatched dependencies only"),
-                  value: value,
-                  onChanged: notEligible
-                      ? null
-                      : (x) {
-                          _showDifferencesOnly!.value = x;
-                        },
-                );
+              onTap: () {
+                _pickFile(widget.onPickAnotherFile);
               },
-            );
-          },
-        ),
+            ),
+          ),
+          const Divider(
+            height: 1,
+          ),
 
-        //! Update all
-        Obx(
-          () {
-            final bool gotItems = !_dependencies.hasNoData;
-            /*logExceptRelease(
-              "Building update all, gotItems: $gotItems, unmatched: ${_countsCache.unmatched} ===============================================================",
-            );*/
-            final int total = _countsCache.unmatched;
+          //! Status message
+          ValueListenableBuilder<String?>(
+            valueListenable: _workStatusMessage!,
+            builder: (context, statusMessage, _) {
+              return AnimatedShowHide(
+                isShown: statusMessage != null,
+                showCurve: Curves.easeIn,
+                hideCurve: Curves.easeOut,
+                child: Text(
+                  statusMessage ?? '',
+                  textScaleFactor: 0.8,
+                ),
+                transitionBuilder: (context, animation, child) =>
+                    FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(
+                    axisAlignment: -1,
+                    sizeFactor: animation,
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            child,
+                          ],
+                        ),
+                        IconButton(
+                          tooltip: "Stop",
+                          onPressed: () {
+                            operationContinue = false;
+                            hideStatusMessage(_workStatusMessage);
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
 
-            final int toUpdate = _countsCache.toUpdate;
-
-            final bool ifUpdateAll = (total != 0) && (total == toUpdate);
-
-            return SwitchListTile(
-              dense: true,
-              title: Row(
-                children: [
-                  const Expanded(child: Text("Update All")),
-                  if (gotItems)
-                    if (total != 0)
-                      Text("($toUpdate/$total)")
-                    else
-                      const Text("No updates")
-                ],
-              ),
-              value: ifUpdateAll,
-              onChanged: gotItems && (total != 0)
-                  ? (x) {
-                      //TODO: implement prerelease
-                      _setUpdateToAll(x);
-                    }
-                  : null,
-            );
-          },
-        ),
-
-        //! Search field
-        SearchField(
-          controller: _textEditingController!,
-        ),
-
-        //! How many results are showing
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-            child: Obx(() {
-              if (_dependencies.data == null) {
-                return empty;
-              }
-              final int total = _countsCache.total;
-              return ValueListenableBuilder<int?>(
-                valueListenable: _shownItems!,
-                builder: (context, shownItems, _) {
-                  return Text(
-                    "Total: $total, Showing: $shownItems",
-                    textScaleFactor: 0.8,
+          //! Show unmatched only
+          Obx(
+            () {
+              final bool notEligible =
+                  _dependencies.data == null || _dependencies.isLoading;
+              return ValueListenableBuilder<bool>(
+                valueListenable: _showDifferencesOnly!,
+                builder: (context, value, _) {
+                  return SwitchListTile(
+                    dense: true,
+                    title: const Text("Show unmatched dependencies only"),
+                    value: value,
+                    onChanged: notEligible
+                        ? null
+                        : (x) {
+                            _showDifferencesOnly!.value = x;
+                          },
                   );
                 },
               );
-            }),
+            },
           ),
-        ),
 
-        //! Content
-        Expanded(
-          child: ValueListenableBuilder<bool>(
+          //! Update all
+          Obx(
+            () {
+              final bool gotItems = !_dependencies.hasNoData;
+              /*logExceptRelease(
+                "Building update all, gotItems: $gotItems, unmatched: ${_countsCache.unmatched} ===============================================================",
+              );*/
+              final int total = _countsCache.unmatched;
+
+              final int toUpdate = _countsCache.toUpdate;
+
+              final bool ifUpdateAll = (total != 0) && (total == toUpdate);
+
+              return SwitchListTile(
+                dense: true,
+                title: Row(
+                  children: [
+                    const Expanded(child: Text("Update All")),
+                    if (gotItems)
+                      if (total != 0)
+                        Text("($toUpdate/$total)")
+                      else
+                        const Text("No updates")
+                  ],
+                ),
+                value: ifUpdateAll,
+                onChanged: gotItems && (total != 0)
+                    ? (x) {
+                        //TODO: implement prerelease
+                        _setUpdateToAll(x);
+                      }
+                    : null,
+              );
+            },
+          ),
+
+          //! Search field
+          SearchField(
+            controller: _textEditingController!,
+          ),
+
+          //! How many results are showing
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+              child: Obx(() {
+                if (_dependencies.data == null) {
+                  return empty;
+                }
+                final int total = _countsCache.total;
+                return ValueListenableBuilder<int?>(
+                  valueListenable: _shownItems!,
+                  builder: (context, shownItems, _) {
+                    return Text(
+                      "Total: $total, Showing: $shownItems",
+                      textScaleFactor: 0.8,
+                    );
+                  },
+                );
+              }),
+            ),
+          ),
+
+          //! Content
+          ValueListenableBuilder<bool>(
             valueListenable: _showDifferencesOnly!,
             builder: (context, showDifferencesOnly, _) {
               return ValueListenableBuilder<TextEditingValue>(
@@ -674,8 +705,17 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                           ),
                           indexedItemBuilder:
                               (context, updateInformation, index) {
+                            return ItemView(
+                              updateInformation: updateInformation,
+                              onUpdateChannelChange: (channel) {
+                                _setUpdateTo(
+                                  index,
+                                  channel,
+                                );
+                              },
+                            );
                             // ignore: avoid_dynamic_calls
-                            return Obx(
+                            /*return Obx(
                               () {
                                 //logExceptRelease("Building item: $index");
                                 _dependencies.data; // Very important task
@@ -716,7 +756,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                                   ),
                                 );
                               },
-                            );
+                            );*/
                           },
                         ),
                       );
@@ -727,26 +767,24 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
               );
             },
           ),
-        ),
 
-        //! Update button
-        Obx(
-          () {
-            _dependencies.data;
-            final FeedbackCallback? onPressed =
-                (_countsCache.toUpdate) <= 0 ? null : _update;
-
-            //logExceptRelease("Update onPressed: $onPressed");
-            return Padding(
-              padding: const EdgeInsets.all(10),
-              child: LoadingElevatedButton(
-                onPressed: onPressed,
-                child: const Text("Update"),
-              ),
-            );
-          },
-        ),
-      ],
+          //! Update button
+          Obx(
+            () {
+              _dependencies.data;
+              final FeedbackCallback? onPressed =
+                  (_countsCache.toUpdate) <= 0 ? null : _update;
+              return Padding(
+                padding: const EdgeInsets.all(10),
+                child: LoadingElevatedButton(
+                  onPressed: onPressed,
+                  child: const Text("Update"),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -811,7 +849,7 @@ class _CountsCache {
 
     logExceptRelease("Total dependencies: $_total.");
 
-    logExceptRelease("Iterating through dependencies.");
+    logExceptRelease("Iterating through dependencies...");
 
     for (final UpdateInformation element in dependencies) {
       // if individualCounts of current dependency type is null, initialize it with zeros
@@ -822,7 +860,9 @@ class _CountsCache {
       logExceptRelease("Current element: $element");
 
       ++individualCounts[element.dependencyType]!._total;
-      logExceptRelease("Incrementing individual counts for dependencyType.");
+      logExceptRelease(
+        "Incrementing individual counts for dependencyType: ${element.dependencyType.name}",
+      );
 
       if (element.setToUpdate) {
         logExceptRelease("Incrementing toUpdate.");
@@ -849,7 +889,11 @@ class _CountsCache {
         ++individualCounts[element.dependencyType]!._unmatched;
       }
 
-      logExceptRelease("Incrementing update type count.");
+      if (element.currentChannel == ReleaseChannel.prerelease) {
+        ++individualCounts[element.dependencyType]!._prerelease;
+      }
+
+      logExceptRelease("Incrementing updateType count.");
 
       // Depending of the update type, increase corresponding counts
       switch (updateType) {
@@ -864,7 +908,6 @@ class _CountsCache {
         case UpdateType.unknown:
           ++individualCounts[element.dependencyType]!._unknown;
           break;
-
         case UpdateType.higher:
           ++individualCounts[element.dependencyType]!._higher;
           break;
@@ -872,7 +915,9 @@ class _CountsCache {
 
       logExceptRelease(" ");
     }
+
     logExceptRelease("Counts cache set!");
+
     print();
   }
 
