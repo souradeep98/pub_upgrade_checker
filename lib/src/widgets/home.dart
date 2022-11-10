@@ -429,9 +429,11 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
           verticalOffset: 10,
           child: FadeInAnimation(child: child),
         ),
-        expandedFlexFactor: (index) {
-          if (index == 7) {
-            return 1;
+        wrapperBuilder: (index, child) {
+          if (index == 4) {
+            return Expanded(
+              child: child,
+            );
           }
           return null;
         },
@@ -456,6 +458,108 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
           ),
           const Divider(
             height: 1,
+          ),
+
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Obx(() {
+                    if (_dependencies.data == null) {
+                      return empty;
+                    }
+                    final int total = _countsCache.total;
+                    return ValueListenableBuilder<int?>(
+                      valueListenable: _shownItems!,
+                      builder: (context, shownItems, _) {
+                        return SearchField(
+                          controller: _textEditingController!,
+                          helperText: "Total: $total, Showing: $shownItems",
+                        );
+                      },
+                    );
+                  }),
+                ),
+
+                const VerticalDivider(
+                  width: 1,
+                  thickness: 0.5,
+                  indent: 10,
+                  endIndent: 10,
+                ),
+
+                //! Show unmatched only
+                Expanded(
+                  child: Obx(
+                    () {
+                      final bool notEligible =
+                          _dependencies.data == null || _dependencies.isLoading;
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: _showDifferencesOnly!,
+                        builder: (context, value, _) {
+                          return CheckboxListTile(
+                            dense: true,
+                            title: const Text(
+                              "Show unmatched only",
+                            ),
+                            value: value,
+                            onChanged: notEligible
+                                ? null
+                                : (x) {
+                                    _showDifferencesOnly!.value = x ?? false;
+                                  },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                const VerticalDivider(
+                  width: 1,
+                  thickness: 0.5,
+                  indent: 10,
+                  endIndent: 10,
+                ),
+
+                //! Update all
+                Expanded(
+                  child: Obx(
+                    () {
+                      final bool gotItems = !_dependencies.hasNoData;
+                      final int total = _countsCache.unmatched;
+
+                      final int toUpdate = _countsCache.toUpdate;
+
+                      final bool ifUpdateAll =
+                          (total != 0) && (total == toUpdate);
+
+                      return SwitchListTile(
+                        dense: true,
+                        title: Row(
+                          children: [
+                            const Expanded(child: Text("Update All")),
+                            if (gotItems)
+                              if (total != 0)
+                                Text("($toUpdate/$total)")
+                              else
+                                const Text("No updates")
+                          ],
+                        ),
+                        value: ifUpdateAll,
+                        onChanged: gotItems && (total != 0)
+                            ? (x) {
+                                //TODO: implement prerelease
+                                _setUpdateToAll(x);
+                              }
+                            : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
 
           //! Status message
@@ -502,7 +606,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
           ),
 
           //! Show unmatched only
-          Obx(
+          /*Obx(
             () {
               final bool notEligible =
                   _dependencies.data == null || _dependencies.isLoading;
@@ -522,10 +626,10 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                 },
               );
             },
-          ),
+          ),*/
 
           //! Update all
-          Obx(
+          /*Obx(
             () {
               final bool gotItems = !_dependencies.hasNoData;
               /*logExceptRelease(
@@ -558,10 +662,10 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                     : null,
               );
             },
-          ),
+          ),*/
 
           //! Search field
-          SearchField(
+          /*SearchField(
             controller: _textEditingController!,
           ),
 
@@ -586,7 +690,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                 );
               }),
             ),
-          ),
+          ),*/
 
           //! Content
           ValueListenableBuilder<bool>(

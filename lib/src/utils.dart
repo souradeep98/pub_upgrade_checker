@@ -7,6 +7,7 @@ import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:pub_upgrade_checker/src/globals.dart';
 import 'package:pub_upgrade_checker/src/structures.dart';
+import 'package:windows_taskbar/windows_taskbar.dart';
 import 'package:yaml/yaml.dart' as yaml;
 import 'package:html/dom.dart' as html;
 import 'package:http/http.dart' as http;
@@ -181,19 +182,28 @@ Future<List<UpdateInformation>> getUpdates(
 
   checkOperation();
 
+  final bool isWindows = Platform.isWindows;
+
   final int length = dependencies.length;
   for (int i = 0; i < length; ++i) {
     checkOperation();
     final UpdateInformation dependency = dependencies[i];
+    final int progress = i + 1;
     setStatus(
       StatusMessage(
-        message: "Checking update for: ${dependency.name} ($i/$length)",
+        message: "Checking update for: ${dependency.name} ($progress/$length)",
         depth: WSMDepth.medium,
       ),
     );
+
+    if (isWindows) {
+      WindowsTaskbar.setProgress(progress, length);
+    }
+
     logExceptRelease("");
     logExceptRelease(
-        "Local: ${dependency.name}: ${dependency.current.versionConstraint}",);
+      "Local: ${dependency.name}: ${dependency.current.versionConstraint}",
+    );
     final Uri uri = Uri.parse(pubBaseUrl + dependency.name);
     final http.Response response = await http.get(uri);
 
@@ -235,6 +245,11 @@ Future<List<UpdateInformation>> getUpdates(
     }
 
     results.add(updateInformationWithUpdates);
+  }
+
+  if (isWindows) {
+    WindowsTaskbar.setProgress(0, 0);
+    WindowsTaskbar.setFlashTaskbarAppIcon();
   }
 
   setStatus(
