@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_essentials/flutter_essentials.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:gesture_x_detector/gesture_x_detector.dart';
 import 'package:get/get.dart';
 import 'package:grouped_list/grouped_list.dart';
 import 'package:pub_upgrade_checker/src/constants.dart';

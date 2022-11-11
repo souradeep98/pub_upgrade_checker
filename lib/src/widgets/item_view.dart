@@ -33,6 +33,7 @@ class _ItemViewState extends State<ItemView> {
 
   @override
   Widget build(BuildContext context) {
+    logExceptRelease("Build Called() for : ${widget.updateInformation}");
     return Tooltip(
       waitDuration: const Duration(seconds: 1),
       message:
@@ -57,12 +58,6 @@ class _ItemViewState extends State<ItemView> {
         value: widget.updateInformation.setToUpdate,
         onChanged: (widget.updateInformation.updateAvailableForAnyChannel)
             ? (shouldUpdate) {
-                /*_setUpdateTo(
-                      index,
-                      shouldUpdate
-                          ? ReleaseChannel.stable
-                          : ReleaseChannel.none,
-                    );*/
                 widget.onUpdateChannelChange(
                   shouldUpdate ? ReleaseChannel.stable : ReleaseChannel.none,
                 );

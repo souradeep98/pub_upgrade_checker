@@ -205,6 +205,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
   TextEditingController? _textEditingController;
   ValueNotifier<int?>? _shownItems;
   final _CountsCache _countsCache = _CountsCache.zero();
+  late final bool _isDesktop;
 
   final List<CancelableOperation<dynamic>> _pendingOperations = [];
   CancelableOperation<dynamic> _addToOperations(Future Function() operation) {
@@ -227,6 +228,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
   @override
   void initState() {
     super.initState();
+    _isDesktop = isDesktop;
     _initiate();
   }
 
@@ -430,7 +432,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
           child: FadeInAnimation(child: child),
         ),
         wrapperBuilder: (index, child) {
-          if (index == 4) {
+          if (index == 2) {
             return Expanded(
               child: child,
             );
@@ -439,8 +441,10 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
         },
         children: [
           //! Opned File
-          Tooltip(
-            message: "Pick another file",
+          /*Tooltip(
+            message: _isDesktop
+                ? "Click to pick another file"
+                : "Tap to pick another file",
             child: ListTile(
               title: const Text("Opened File:"),
               subtitle: Text(widget.file.path),
@@ -458,11 +462,112 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
           ),
           const Divider(
             height: 1,
-          ),
+          ),*/
 
           IntrinsicHeight(
             child: Row(
               children: [
+                //! Opned File
+                Expanded(
+                  flex: 2,
+                  child: Tooltip(
+                    message: _isDesktop
+                        ? "Click to pick another file"
+                        : "Tap to pick another file",
+                    child: ListTile(
+                      title: const Text("Opened File:"),
+                      subtitle: Text(widget.file.path),
+                      trailing: Tooltip(
+                        message: "Close File",
+                        child: IconButton(
+                          onPressed: widget.onCloseFile,
+                          icon: const Icon(Icons.close),
+                        ),
+                      ),
+                      onTap: () {
+                        _pickFile(widget.onPickAnotherFile);
+                      },
+                    ),
+                  ),
+                ),
+
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      //! Show unmatched only
+                      Obx(
+                        () {
+                          final bool notEligible = _dependencies.data == null ||
+                              _dependencies.isLoading;
+                          return ValueListenableBuilder<bool>(
+                            valueListenable: _showDifferencesOnly!,
+                            builder: (context, value, _) {
+                              return CheckboxListTile(
+                                dense: true,
+                                title: const Text(
+                                  "Show unmatched only",
+                                ),
+                                value: value,
+                                onChanged: notEligible
+                                    ? null
+                                    : (x) {
+                                        _showDifferencesOnly!.value =
+                                            x ?? false;
+                                      },
+                              );
+                            },
+                          );
+                        },
+                      ),
+
+                      //! Update all
+                      Obx(
+                        () {
+                          final bool gotItems = !_dependencies.hasNoData;
+                          final int total = _countsCache.unmatched;
+
+                          final int toUpdate = _countsCache.toUpdate;
+
+                          final bool ifUpdateAll =
+                              (total != 0) && (total == toUpdate);
+
+                          return SwitchListTile(
+                            dense: true,
+                            title: Row(
+                              children: [
+                                const Flexible(child: Text("Update All")),
+                                if (gotItems)
+                                  Flexible(
+                                    child: (total != 0)
+                                        ? Text(" ($toUpdate/$total)")
+                                        : const Text(" No updates"),
+                                  ),
+                              ],
+                            ),
+                            value: ifUpdateAll,
+                            onChanged: gotItems && (total != 0)
+                                ? (x) {
+                                    //TODO: implement prerelease
+                                    _setUpdateToAll(x);
+                                  }
+                                : null,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                /*const VerticalDivider(
+                  width: 1,
+                  thickness: 0.5,
+                  indent: 10,
+                  endIndent: 10,
+                ),*/
+
                 Expanded(
                   flex: 2,
                   child: Obx(() {
@@ -476,21 +581,36 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                         return SearchField(
                           controller: _textEditingController!,
                           helperText: "Total: $total, Showing: $shownItems",
+                          searchFieldInputDecorationBuilder: ({
+                            required controller,
+                            helperText,
+                            hintText,
+                            isFilled,
+                            labelText,
+                            prefixIcon,
+                            required suffixIcon,
+                          }) =>
+                              InputDecoration(
+                            prefixIcon: prefixIcon,
+                            helperText: helperText,
+                            hintText: hintText,
+                            filled: isFilled,
+                            labelText: labelText,
+                            suffixIcon: suffixIcon,
+                            border: const OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(20),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     );
                   }),
                 ),
 
-                const VerticalDivider(
-                  width: 1,
-                  thickness: 0.5,
-                  indent: 10,
-                  endIndent: 10,
-                ),
-
                 //! Show unmatched only
-                Expanded(
+                /*Expanded(
                   child: Obx(
                     () {
                       final bool notEligible =
@@ -541,10 +661,15 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                           children: [
                             const Expanded(child: Text("Update All")),
                             if (gotItems)
-                              if (total != 0)
+                              Flexible(
+                                child: (total != 0)
+                                    ? Text("($toUpdate/$total)")
+                                    : const Text("No updates"),
+                              ),
+                            /*if (total != 0)
                                 Text("($toUpdate/$total)")
                               else
-                                const Text("No updates")
+                                const Text("No updates")*/
                           ],
                         ),
                         value: ifUpdateAll,
@@ -557,10 +682,13 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
                       );
                     },
                   ),
-                ),
+                ),*/
               ],
             ),
           ),
+          /*const Divider(
+            height: 1,
+          ),*/
 
           //! Status message
           ValueListenableBuilder<String?>(

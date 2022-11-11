@@ -731,47 +731,49 @@ class _Dragger extends StatefulWidget {
   State<_Dragger> createState() => _DraggerState();
 }
 
-class _DraggerState extends State<_Dragger> {
-  late final ValueNotifier<bool> _isGrabbing;
+class _DraggerState extends State<_Dragger> with WindowListener {
+  bool _isMaximized = false;
 
   @override
   void initState() {
     super.initState();
-    _isGrabbing = ValueNotifier<bool>(false);
+    windowManager.addListener(this);
   }
 
   @override
   void dispose() {
-    _isGrabbing.dispose();
+    windowManager.removeListener(this);
     super.dispose();
   }
 
   @override
+  void onWindowMaximize() {
+    _isMaximized = true;
+  }
+
+  @override
+  void onWindowUnmaximize() {
+    _isMaximized = false;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _isGrabbing,
-      builder: (context, isGrabbing, child) {
-        return MouseRegion(
-          cursor: isGrabbing
-              ? SystemMouseCursors.grabbing
-              : SystemMouseCursors.grab,
-          child: child,
-        );
+    return XGestureDetector(
+      onMoveStart: (_) async {
+        await windowManager.startDragging();
       },
-      child: GestureDetector(
-        onTapDown: (_) {
-          _isGrabbing.value = true;
-          windowManager.startDragging();
-        },
-        onTapUp: (_) {
-          _isGrabbing.value = false;
-        },
-        child: SizedBox(
-          height: widget.height,
-          width: widget.width,
-          child: const ColoredBox(
-            color: Colors.transparent,
-          ),
+      onDoubleTap: (_) async {
+        if (_isMaximized) {
+          await windowManager.unmaximize();
+        } else if (await windowManager.isMaximizable()) {
+          await windowManager.maximize();
+        }
+      },
+      child: SizedBox(
+        height: widget.height,
+        width: widget.width,
+        child: const ColoredBox(
+          color: Colors.transparent,
         ),
       ),
     );
