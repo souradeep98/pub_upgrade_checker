@@ -10,3 +10,6 @@ The Application will show you every dependencies, with updates, if available. It
 
 To build this project, for that you must have Flutter SDK installed.
 For guidance of installing Flutter SDK and running this app, please follow the instructions [here](https://docs.flutter.dev/get-started/install).
+
+
+Please note that, this project is currently under development, there can be bugs and non-working features for that reason.
