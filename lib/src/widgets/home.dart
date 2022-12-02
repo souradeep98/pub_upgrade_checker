@@ -79,7 +79,7 @@ class _HomeState extends State<Home> {
   }
 }
 
-Future<void> _pickFile(void Function(File) onPick) async {
+Future<void> _pickFile(FutureOr<void> Function(File) onPick) async {
   final FilePickerResult? result = isSmartPhone
       ? (await FilePicker.platform.pickFiles())
       : (await FilePicker.platform.pickFiles(
@@ -91,7 +91,7 @@ Future<void> _pickFile(void Function(File) onPick) async {
     return;
   }
   logExceptRelease("Picked file: ${result.files.single.path}");
-  onPick(File(result.files.single.path!));
+  await onPick(File(result.files.single.path!));
 }
 
 class _PickFile extends StatefulWidget {
@@ -298,8 +298,7 @@ class _DependencyReviewerState extends State<_DependencyReviewer> {
     //_dependencyToTypeMap = null;
     logExceptRelease("Controllers Disposed");
     Future.wait([
-      Get.delete<
-          SingleGenerateObservable<RxMap<Dependency, UpdateInformation>>>(
+      Get.delete<SingleGenerateObservable<RxList<UpdateInformation>>>(
         tag: _dependenciesTag,
       ),
     ]).then((value) {
